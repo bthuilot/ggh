@@ -3,7 +3,7 @@
 (** [get_config_value] returns the config value from the git config command *)
 let get_config_value ?(global: bool = true) ?(all: bool = false) ?(group: string = "ggh") (name: string)  =
   let stdout = Unix.open_process_in (
-      "git config get "
+      "git config get --includes "
       ^ (if global then "--global" else "")
       ^ " "
       ^ (if all then "--all" else "")
