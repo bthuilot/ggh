@@ -27,7 +27,7 @@ Currently installation is only supported by building the program and installing 
 git clone https://github.com/bthuilot/ggh
 cd ggh/
 make install # will use sudo to install
-# and additionall overwrite your global 'core.hooksPath' valye
+# will move binaries to /usr/local/bin and configure 'core.hooks' gitconfig value
 ```
 
 ## Configuration

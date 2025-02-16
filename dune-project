@@ -13,12 +13,12 @@
 
 (license GPL-3.0-or-later)
 
-(documentation https://github.com/bthuilot/ggh/wiki)
+(documentation https://github.com/bthuilot/ggh/tree/main?tab=readme-ov-file#global-git-hooks)
 
 (package
  (name ggh)
- (synopsis "global git hooks")
- (description "globally available git hooks to be run on all your git projects")
+ (synopsis "Global git hooks.")
+ (description "Globally available git hooks to be run on all your git projects.")
  (depends ocaml dune dolog ocamlformat)
  (tags
   (git sdlc pre-commit supply-chain)))

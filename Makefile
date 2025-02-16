@@ -1,8 +1,11 @@
 SYSTEM_BIN := /usr/local/bin/ggh
 BIN := "_build/default/bin/main.exe"
 
-.PHONY: build install
-build:
+.PHONY: install-deps build install
+install-deps:
+	@opam install . --deps-only --with-test --with-doc
+
+build: install-deps
 	@dune build
 
 install:
