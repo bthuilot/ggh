@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  OCAML_COMPILER: 5
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+            persist-credentials: false
+
+      - name: set-up ocaml
+        uses: ocaml/setup-ocaml@c34bb830f41eafcfd2f65e04f0e95af3e4f9b46e # v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+
+      - run: opam install . --deps-only --with-test
+
+      - run: opam exec -- dune build
+
+      - run: opam exec -- dune fmt
+        
+      - run: opam exec -- dune runtest

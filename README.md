@@ -11,11 +11,13 @@ git repositories.
 
 ### Sample hooks
 
-ggh ships with 3 pre-defined hooks currently
+ggh ships with 3 pre-defined hooks currently, located in the `hooks` directory
 
-1. `ggh-gitleaks`: runs gitleaks as a pre-commit hook, exiting 1 if a secret is found
+1. `ggh-gitleaks`: runs gitleaks as a pre-commit hook, exiting 1 if a secret is found (requires gitleaks to be installed)
 2. `ggh-conventional-commit`: A commit-msg hook to ensure the message meets the convetional commit standard
 3. `ggh-signed-off`: a commit-msg hook to ensure the message includes a `Signed-off-by` block.
+
+The are installed along side `ggh` via `make install`
 
 ## Installation
 
@@ -55,3 +57,4 @@ You can also manually edit the gitconfig manually
 	commit-msg = ggh-signed-off
 	commit-msg = ggh-conventional-commit
 ```
+
