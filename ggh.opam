@@ -3,12 +3,12 @@ opam-version: "2.0"
 synopsis: "global git hooks"
 description:
   "globally available git hooks to be run on all your git projects"
-maintainer: ["Bryce Thuilot <bryce@thuilot.io"]
+maintainer: ["Bryce Thuilot <bryce@thuilot.io>"]
 authors: ["Bryce Thuilot <bryce@thuilot.io>"]
 license: "GPL-3"
 tags: ["git" "sdlc" "pre-commit" "supply-chain"]
 homepage: "https://github.com/bthuilot/ggh"
-doc: "https://url/to/documentation"
+doc: "https://github.com/bthuilot/ggh/wiki"
 bug-reports: "https://github.com/bthuilot/ggh/issues"
 depends: [
   "ocaml"

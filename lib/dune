@@ -1,2 +1,3 @@
 (library
- (name ggh))
+ (name ggh)
+ (libraries str dolog unix))
