@@ -1,0 +1,18 @@
+#!/bin/bash
+
+if [[ GGH_IGNORE_CC == 1 ]]; then
+    echo "ggh-conventional-commit: ignoring due to override"
+    exit 0
+fi
+
+COMMIT_MSG="$(cat $1)"
+
+CC_REGEX="^((build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.*\))?!?: .*)"
+
+# File containing the commit message
+if ! [[ $COMMIT_MSG =~ $CC_REGEX ]]; then
+    echo "ggh-conventional-commit: commit does not match conventional standard, aborting" >&2
+    exit 1
+else
+    echo "ggh-conventional-commit: valid commit"
+fi

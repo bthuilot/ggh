@@ -1,4 +1,4 @@
 (executable
  (public_name ggh)
  (name main)
- (libraries ggh))
+ (libraries ggh dolog str))

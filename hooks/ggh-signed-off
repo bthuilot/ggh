@@ -1,0 +1,19 @@
+#!/bin/bash
+
+
+if [[ GGH_IGNORE_SIGNEDOFF == 1 ]]; then
+    echo "ggh-signed-off: ignoring due to override"
+    exit 0
+fi
+
+COMMIT_MSG="$(cat $1)"
+
+SIGNEDOFF_REGEX=".*Signed-off-by: .* <.*>[[:space:]]*"
+
+# File containing the commit message
+if ! [[ $COMMIT_MSG =~ $SIGNEDOFF_REGEX ]]; then
+    echo "ggh-signed-off: commit does not match conventional standard, aborting" >&2
+    exit 1
+else
+    echo "ggh-signed-off: valid commit"
+fi
