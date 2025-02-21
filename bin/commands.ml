@@ -1,3 +1,11 @@
+(*
+ * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ *
+ * You have permission to copy, modify, and redistribute under the
+ * terms of the GPL-3.0. For full license terms, see LICENSE file located
+ * in the root of the repository.
+ *)
+
 module Git = Ggh.Git
 module Log = Dolog.Log
 
@@ -37,4 +45,4 @@ let install (_ : string array) =
     hooks
 
 let configure (_ : string array) =
-  Git.set_config_value ~global:true ~group:"core" "hooksPath" hooks_dir
+  Git.set_config_value ~scope:Git.Global ~group:"core" "hooksPath" hooks_dir
