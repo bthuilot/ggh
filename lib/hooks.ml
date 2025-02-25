@@ -7,6 +7,7 @@
  *)
 
 module Log = Dolog.Log
+module StringSet = Set.Make (String)
 
 (** [get_repository_hooks] returns the current git directory's hook for the
     given hook name. *)
@@ -35,33 +36,52 @@ let exec_hook (hook_name : string) (hook_path : string) (args : string array) :
     Ok status
   with Unix.Unix_error (e, _, _) -> Error (Unix.error_message e)
 
+let rec exec_all_hooks (hook_name : string) (args : string array) :
+    string list -> (unit, string * int) result = function
+  | [] -> Ok ()
+  | h :: hs -> (
+      Log.debug "executing %s" h;
+      match exec_hook hook_name h args with
+      | Ok (Unix.WEXITED 0) -> exec_all_hooks hook_name args hs
+      | Ok (Unix.WEXITED code) ->
+          Error
+            (Printf.sprintf "hook '%s' failed with exit code %d" h code, code)
+      | Ok (Unix.WSIGNALED signal) ->
+          Error
+            ( Printf.sprintf "hook '%s' kill by signal %d" h signal,
+              if signal < 128 then signal + 128 else signal )
+      | Ok (Unix.WSTOPPED signal) ->
+          Error
+            ( Printf.sprintf "hook '%s' stopped by signal %d" h signal,
+              if signal < 128 then signal + 128 else signal )
+      | Error s ->
+          Log.warn "failed to start process '%s': %s" h s;
+          exec_all_hooks hook_name args hs)
+
+let get_user_hooks (hook_name : string) : string list =
+  let hook_cfgs = Config.get_hooks hook_name in
+  List.fold_left
+    (fun acc (s, h) ->
+      let scope_str = Git.scope_to_string s
+      and trusted_scope = Config.is_trusted_scope s in
+      if StringSet.mem h acc |> not && trusted_scope
+      (* TODO(bryce): prompt user for this *)
+      (* || Tty.confirm ("run hook '" ^ h ^ "' from scope '" ^ scope_str ^ "'")) *)
+      then StringSet.add h acc
+      else (
+        Printf.printf "skipping untrusted hook '%s' from scope '%s'\n" h
+          scope_str;
+        flush stdout;
+        acc))
+    StringSet.empty hook_cfgs
+  |> StringSet.to_list
+
 (** [run_hooks] will run all hooks for the given hook name. It will find the
     processes to execute by looking at the values set for the hook name is the
-    'ggh' gitconfig in scope [Git.All]. Additionally it will execute the hooks
+    'ggh' gitconfig in scope [Git.Any]. Additionally it will execute the hooks
     confiured in the repository's hook folder in the git directory. *)
 let run_hooks (hook_name : string) (args : string array) :
     (unit, string * int) result =
-  let rec user_hooks = Config.get_hooks hook_name
-  and repo_hooks = get_repository_hooks hook_name
-  and exec_all : string list -> (unit, string * int) result = function
-    | [] -> Ok ()
-    | h :: hs -> (
-        Log.debug "executing %s" h;
-        match exec_hook hook_name h args with
-        | Ok (Unix.WEXITED 0) -> exec_all hs
-        | Ok (Unix.WEXITED code) ->
-            Error
-              (Printf.sprintf "hook '%s' failed with exit code %d" h code, code)
-        | Ok (Unix.WSIGNALED signal) ->
-            Error
-              ( Printf.sprintf "hook '%s' kill by signal %d" h signal,
-                signal + 128 )
-        | Ok (Unix.WSTOPPED signal) ->
-            Error
-              ( Printf.sprintf "hook '%s' stopped by signal %d" h signal,
-                signal + 128 )
-        | Error s ->
-            Log.warn "failed to start process '%s': %s" h s;
-            exec_all hs)
-  in
-  exec_all (user_hooks @ repo_hooks)
+  let user_hooks = get_user_hooks hook_name
+  and repo_hooks = get_repository_hooks hook_name in
+  exec_all_hooks hook_name args (user_hooks @ repo_hooks)

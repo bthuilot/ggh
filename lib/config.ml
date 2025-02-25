@@ -31,7 +31,7 @@ let parse_log_level () : Log.log_level =
       ~default:
         (match Git.get_config_value "log-level" with
         | None -> "info"
-        | Some l -> l)
+        | Some (_, l) -> l)
       "GGH_LOG_LEVEL"
   in
   match String.lowercase_ascii lvl with
@@ -51,7 +51,7 @@ let init_logger ?(lvl = Log.INFO) () =
   Log.set_log_level lvl;
   try
     let _ = Sys.getenv "GGH_USE_STDERR" in
-    Log.color_on ();
+    if Unix.isatty Unix.stderr then Log.color_on ();
     Log.set_output stderr;
     Log.debug "using STDERR for logs"
   with Not_found -> log_channel () |> Log.set_output
@@ -65,3 +65,25 @@ let init () =
     the given hook name. *)
 let get_hooks (hook_name : string) =
   match Git.get_config_values hook_name with Some hooks -> hooks | None -> []
+
+let is_trusted_scope = function
+  | Git.Global -> true
+  | Git.System -> true
+  | _ -> false
+
+let get_whitelisted_dirs () : string list =
+  let global =
+    Git.get_config_values ~scope:Git.Global "trusted-dirs"
+    |> Option.value ~default:[]
+  and system =
+    Git.get_config_values ~scope:Git.Global "trusted-dirs"
+    |> Option.value ~default:[]
+  in
+  List.map (fun (_, v) -> v) (global @ system)
+
+let get_user_trust_mode () : string option =
+  let global_trust = Git.get_config_value ~scope:Git.Global "trust-mode"
+  and system_trust = Git.get_config_value ~scope:Git.System "trust-mode" in
+  match global_trust with
+  | Some (_, v) -> Some v
+  | _ -> ( match system_trust with Some (_, v) -> Some v | _ -> None)

@@ -10,6 +10,18 @@ val init : unit -> unit
 (** [init] will initialize the configuration for the current process including
     the configuring the global logger. *)
 
-val get_hooks : string -> string list
+val get_hooks : string -> Git.value list
 (** [get_hooks] returns the list of process names to start for the given hook.
 *)
+
+val is_trusted_scope : Git.scope -> bool
+(** [is_trusted_scope] returns if the current scope is trusted for Git config
+    values *)
+
+val get_whitelisted_dirs : unit -> string list
+(** [get_whitelisted_dirs] returns a list of directories that are considered
+    trusted *)
+
+val get_user_trust_mode : unit -> string option
+(** [get_trust_mode] returns the trust mode configured by the user. Will be
+    [None] if no option was provided *)
