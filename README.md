@@ -36,11 +36,12 @@ All configuration for ggh is done using the `.gitconfig` file
 and via the `git config` command. All options should be prefixed by `ggh.`
 section of your config. Below are the list of options
 
-| Config key   | Description                           | Mutliple values? |
-|--------------|---------------------------------------|------------------|
-| `pre-commit` | Hooks to run during 'pre-commit' hook | yes              |
-| `commit-msg` | Hooks to run during 'commit-msg' hook | yes              |
-| `log-level`  | The log level for ggh                 | no               |
+| Config key       | Description                                 | Mutliple values? |
+|------------------|---------------------------------------------|------------------|
+| `pre-commit`     | Hooks to run during 'pre-commit' hook       | yes              |
+| `commit-msg`     | Hooks to run during 'commit-msg' hook       | yes              |
+| `recursive-dirs` | Additional hooks path to call when executed | yes              |
+| `log-level`      | The log level for ggh                       | no               |
 
 You can also manually edit the gitconfig manually
 
@@ -48,7 +49,13 @@ You can also manually edit the gitconfig manually
 # ~/.gitconfig
 [ggh]
 	# global config #
+	# log level of GGH
 	log-level = debug
+	
+	# additional hooks path to call
+	# on each hook
+	recusrive-dirs = /other/hooks/path/to/call
+	
 	
 	# pre-commit hooks #
 	pre-commit = ggh-gitleaks

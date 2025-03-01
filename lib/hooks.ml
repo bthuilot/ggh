@@ -59,21 +59,29 @@ let rec exec_all_hooks (hook_name : string) (args : string array) :
           exec_all_hooks hook_name args hs)
 
 let get_user_hooks (hook_name : string) : string list =
-  let hook_cfgs = Config.get_hooks hook_name in
+  let hook_cfgs = Config.get_hooks hook_name
+  and recusrive_dirs =
+    Config.get_recursive_hooks ()
+    |> List.map (fun (s, v) -> (s, Utils.trim_suffix "/" v ^ "/" ^ hook_name))
+    (* filter files that actually exist *)
+    |> List.filter (fun (_, v) -> Sys.file_exists v)
+  in
+  (* check scope is trusted, if not ask them to use *)
+  (* this should be moved into Config module *)
   List.fold_left
     (fun acc (s, h) ->
       let scope_str = Git.scope_to_string s
       and trusted_scope = Config.is_trusted_scope s in
-      if StringSet.mem h acc |> not && trusted_scope
       (* TODO(bryce): prompt user for this *)
       (* || Tty.confirm ("run hook '" ^ h ^ "' from scope '" ^ scope_str ^ "'")) *)
-      then StringSet.add h acc
+      if StringSet.mem h acc |> not && trusted_scope then StringSet.add h acc
       else (
         Printf.printf "skipping untrusted hook '%s' from scope '%s'\n" h
           scope_str;
         flush stdout;
         acc))
-    StringSet.empty hook_cfgs
+    StringSet.empty
+    (hook_cfgs @ recusrive_dirs)
   |> StringSet.to_list
 
 (** [run_hooks] will run all hooks for the given hook name. It will find the
