@@ -29,7 +29,7 @@ let parse_log_level () : Log.log_level =
   let lvl =
     get_env
       ~default:
-        (match Git.get_config_value "log-level" with
+        (match Git.get_config_value "logLevel" with
         | None -> "info"
         | Some (_, l) -> l)
       "GGH_LOG_LEVEL"
@@ -61,11 +61,6 @@ let init () =
   let log_level = parse_log_level () in
   init_logger ~lvl:log_level ()
 
-(** [get_hooks] returns the paths to the user defined binaries to execute for
-    the given hook name. *)
-let get_hooks (hook_name : string) =
-  match Git.get_config_values hook_name with Some hooks -> hooks | None -> []
-
 let is_trusted_scope = function
   | Git.Global -> true
   | Git.System -> true
@@ -73,17 +68,30 @@ let is_trusted_scope = function
 
 let get_whitelisted_dirs () : string list =
   let global =
-    Git.get_config_values ~scope:Git.Global "trusted-dirs"
+    Git.get_config_values ~scope:Git.Global "trustedPaths"
     |> Option.value ~default:[]
   and system =
-    Git.get_config_values ~scope:Git.Global "trusted-dirs"
+    Git.get_config_values ~scope:Git.Global "trustedPaths"
     |> Option.value ~default:[]
   in
   List.map (fun (_, v) -> v) (global @ system)
 
 let get_user_trust_mode () : string option =
-  let global_trust = Git.get_config_value ~scope:Git.Global "trust-mode"
-  and system_trust = Git.get_config_value ~scope:Git.System "trust-mode" in
+  let global_trust = Git.get_config_value ~scope:Git.Global "trustMode"
+  and system_trust = Git.get_config_value ~scope:Git.System "trustMode" in
   match global_trust with
   | Some (_, v) -> Some v
   | _ -> ( match system_trust with Some (_, v) -> Some v | _ -> None)
+
+(* TODO(bryce): these should be refactored to just return string lists,
+   filtering out the [Git.values] that dont come from a trusted scope. *)
+
+(** [get_hooks] returns the paths to the user defined binaries to execute for
+    the given hook name. *)
+let get_hooks (hook_name : string) =
+  match Git.get_config_values hook_name with Some hooks -> hooks | None -> []
+
+let get_recursive_hooks () : Git.value list =
+  match Git.get_config_values "additionalHooksPath" with
+  | Some paths -> paths
+  | None -> []

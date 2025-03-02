@@ -25,3 +25,8 @@ val get_whitelisted_dirs : unit -> string list
 val get_user_trust_mode : unit -> string option
 (** [get_trust_mode] returns the trust mode configured by the user. Will be
     [None] if no option was provided *)
+
+val get_recursive_hooks : unit -> Git.value list
+(** [get_recursive_hooks] returns a list of directories that user has configured
+    to additionally be called for the current hook. I should be thought of a sub
+    'core.hooksPath' *)

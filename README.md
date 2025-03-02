@@ -36,19 +36,29 @@ All configuration for ggh is done using the `.gitconfig` file
 and via the `git config` command. All options should be prefixed by `ggh.`
 section of your config. Below are the list of options
 
-| Config key   | Description                           | Mutliple values? |
-|--------------|---------------------------------------|------------------|
-| `pre-commit` | Hooks to run during 'pre-commit' hook | yes              |
-| `commit-msg` | Hooks to run during 'commit-msg' hook | yes              |
-| `log-level`  | The log level for ggh                 | no               |
+| Config key                                          | Description                                                            | Mutliple values? |
+|-----------------------------------------------------|------------------------------------------------------------------------|------------------|
+| `$HOOK_NAME` (e.g `pre-commit`, `commit-msg`, etc.) | The hooks to execute when the respective hook (`$HOOK_NAME`) is called | yes              |
+| `additionalHooksPath`                               | Additional hooks path to call when executed                            | yes              |
+| `logLevel`                                          | The log level for ggh                                                  | no               |
+
 
 You can also manually edit the gitconfig manually
 
 ```gitconfig
 # ~/.gitconfig
 [ggh]
+	## Application config ##
+
 	# global config #
-	log-level = debug
+	# log level of GGH
+	logLevel = debug
+	
+	# additional hooks path to call
+	# on each hook
+	additionalHooksPath = /other/hooks/path/to/call
+	
+	## Hooks ##
 	
 	# pre-commit hooks #
 	pre-commit = ggh-gitleaks

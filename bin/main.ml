@@ -29,16 +29,19 @@ let parse_args () =
     Printf.printf "please provide an argument\n";
     exit 1)
   else
-    let cmd = Sys.argv.(1) in
+    let cmd = Sys.argv.(1) and sub_args = Array.sub Sys.argv 1 (n_args - 1) in
     match cmd with
     | "--help" ->
         Commands.help ();
         exit 0
     | "install" ->
-        Commands.install (Array.sub Sys.argv 1 (n_args - 1));
+        Commands.install sub_args;
         exit 0
     | "configure" ->
-        Commands.configure (Array.sub Sys.argv 1 (n_args - 1));
+        Commands.configure sub_args;
+        exit 0
+    | "print-env-opts" ->
+        Commands.print_env_opts sub_args;
         exit 0
     | _ ->
         Printf.printf "unknown argument '%s'\n" cmd;
