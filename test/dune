@@ -1,2 +1,59 @@
-(test
- (name test_ggh))
+(library
+ (name git_mock)
+ (libraries dolog)
+ (modules git_mock))
+
+(tests
+ (names config git)
+ (modules config git)
+ (libraries alcotest ggh git_mock)
+ ;; we have to depend on git being installed
+ ;; TODO: move to only packages that use git
+ (enabled_if "%{bin-available:git}")
+ (action
+  ;; this big mess just means
+  ;; - create 2 temporary directories
+  ;;   (one for git repository, one for user home)
+  ;; - initialize one as a git repositroy
+  ;; - set them as the environment variables
+  ;;   "GGH_GIT_SANDBOX" (for the git repository) and
+  ;;   "GGH_HOME_SANDBOX" (for the users home directory).
+  ;;
+  ;; These are added to test git config retrieval.
+  ;; Two are needed since 
+  (progn
+   ; (bash "mkdir -p $PWD/ggh-git-sandbox; mkdir -p $PWD/ggh-home-sandbox")
+   ;; set the enviroment variables
+   (setenv
+    GGH_GIT_SANDBOX
+    %{workspace_root}/ggh-git-sandbox
+    (setenv
+     HOME
+     %{workspace_root}/ggh-home-sandbox
+     ;; set the current directory to the git sandbox
+     (chdir
+      %{workspace_root}/ggh-git-sandbox
+      (progn
+       (bash "rm -f .git && git init --quiet")
+       (bash "mkdir -p $HOME && touch $HOME/.gitconfig")
+       (run %{test})))))))
+ ; )
+ (deps
+  (universe)
+  (sandbox always)))
+
+; (rule
+;  (target %{env:TMPDIR=/tmp/}ggh-git-sandbox)
+;  (action
+
+;   (bash "mkdir -p $TMPDIR/ggh-git-sandbogh-home-sandbox"))
+; )
+
+(env
+ (_
+  (env-vars
+   (GIT_CONFIG_NOSYSTEM 1)
+   ; just set home to something
+   ; so we dont accidentally write to
+   ; the users config 
+   (HOME "/non/existant"))))
