@@ -19,7 +19,12 @@
  (name ggh)
  (synopsis "Global git hooks.")
  (description "Globally available git hooks to be run on all your git projects.")
- (depends ocaml dune dolog ocamlformat)
+ (depends
+   ocaml
+   dune
+   dolog
+   ocamlformat
+  (alcotest :with-test))
  (tags
   (git sdlc pre-commit supply-chain)))
 
