@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  release:
+    types: ["created"]
+
+env:
+  OCAML_COMPILER: 5
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            name: linux
+            arch: arm64
+          - os: macos-latest
+            name: darwin
+            arch: arm64
+          # TODO(bryce): find a way to build
+          # darwin amd64 without paying money
+          # - os: macos-latest-large
+          #   name: darwin
+          #   arch: amd64
+          # TODO(bryce): build for windows
+          # - os: windows-latest
+          #   name: windows
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+            persist-credentials: false
+
+      - name: set-up ocaml
+        uses: ocaml/setup-ocaml@0b8b8c6f352bfdd12fa56b6727eed5990aa22859 # v3
+        with:
+          ocaml-compiler: ${{ env.OCAML_COMPILER }}
+
+      - run: opam install . --deps-only
+
+      - run: opam exec -- dune build
+
+      - run: |
+          export FILE_NAME="ggh-${TAG_NAME}-${OS_NAME}-${OS_ARCH}.tar.gz"
+          tar -zcvf ${FILE_NAME} _build/default/bin/main.exe
+          if [[ "$OS_NAME" == "darwin" ]]; then
+            shasum  --algorithm 256 ${FILE_NAME} | awk '{print $1}' > ${FILE_NAME}.sha256
+          else
+            sha256sum ./$FILE_NAME > ${FILE_NAME}.sha256
+          fi
+          gh release upload $TAG_NAME ./${FILE_NAME}.sha256
+          gh release upload $TAG_NAME ./$FILE_NAME
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          OS_NAME: ${{ matrix.name }}
+          GH_TOKEN: ${{ github.token }}
+          OS_ARCH: ${{ matrix.arch }}
+  
