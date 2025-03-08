@@ -52,7 +52,8 @@ jobs:
 
       - run: |
           export FILE_NAME="ggh-${TAG_NAME}-${OS_NAME}-${OS_ARCH}.tar.gz"
-          tar -zcvf ${FILE_NAME} _build/default/bin/main.exe
+          cp _build/default/bin/main.exe ggh
+          tar -zcvf ${FILE_NAME} ggh
           if [[ "$OS_NAME" == "darwin" ]]; then
             shasum  --algorithm 256 ${FILE_NAME} | awk '{print $1}' > ${FILE_NAME}.sha256
           else
