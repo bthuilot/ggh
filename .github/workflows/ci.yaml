@@ -24,7 +24,7 @@ jobs:
             persist-credentials: false
 
       - name: set-up ocaml
-        uses: ocaml/setup-ocaml@0b8b8c6f352bfdd12fa56b6727eed5990aa22859 # v3
+        uses: ocaml/setup-ocaml@3a2408012d2d345438ffdef9875d902a6ec41eae # v3
         with:
           ocaml-compiler: ${{ env.OCAML_COMPILER }}
 
