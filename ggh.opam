@@ -12,10 +12,10 @@ doc:
   "https://github.com/bthuilot/ggh/tree/main?tab=readme-ov-file#global-git-hooks"
 bug-reports: "https://github.com/bthuilot/ggh/issues"
 depends: [
-  "ocaml"
-  "dune" {>= "3.12"}
-  "dolog"
-  "ocamlformat"
+  "ocaml" {>= "5.1.0"}
+  "dune" {>= "3.17"}
+  "dolog" {>= "4.0.0"}
+  "ocamlformat" {with-test}
   "alcotest" {with-test}
   "odoc" {with-doc}
 ]

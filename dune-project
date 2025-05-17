@@ -1,4 +1,4 @@
-(lang dune 3.12)
+(lang dune 3.17)
 
 (name ggh)
 
@@ -20,10 +20,10 @@
  (synopsis "Global git hooks.")
  (description "Globally available git hooks to be run on all your git projects.")
  (depends
-   ocaml
+  (ocaml (>= 5.1.0))
    dune
-   dolog
-   ocamlformat
+  (dolog (>= 4.0.0))
+  (ocamlformat :with-test)
   (alcotest :with-test))
  (tags
   (git sdlc pre-commit supply-chain)))

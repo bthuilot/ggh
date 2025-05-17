@@ -2,12 +2,16 @@ SYSTEM_BIN := /usr/local/bin/ggh
 BIN := "_build/default/bin/main.exe"
 HOOKS_PATH := /usr/local/ggh/
 
-.PHONY: install-deps build install
+.PHONY: install-deps install-all-deps build install
 install-deps:
+	@opam install . --deps-only
+
+install-all-deps:
 	@opam install . --deps-only --with-test --with-doc
 
 build: install-deps
 	@dune build
+
 
 install:
 	@dune build
