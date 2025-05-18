@@ -11,7 +11,8 @@ install-all-deps:
 
 build: install-deps
 	@dune build
-
+fmt:
+	@dune fmt
 
 install:
 	@dune build
