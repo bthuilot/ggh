@@ -13,10 +13,18 @@ module StringSet = Set.Make (String)
     given hook name. *)
 let get_repository_hooks (hook_name : string) : string list =
   match Git.get_dir () with
-  | None -> []
+  | None ->
+      Log.debug "no toplevel git directory found";
+      []
   | Some dir ->
-      if dir ^ "/" ^ hook_name |> Sys.file_exists then [ dir ^ "/" ^ hook_name ]
-      else []
+      let hook_path = dir ^ "/.git/hooks/" ^ hook_name in
+      Log.debug "checking for local hook %s" hook_path;
+      if Sys.file_exists hook_path then (
+        Log.debug "found local hook for %s" hook_path;
+        [ hook_path ])
+      else (
+        Log.debug "no local hook found for %s" hook_path;
+        [])
 
 (** [exec_hook] will execute a hook and return a result with [Ok] being a
     [Unix.process_status] if the execution was started successfully or an
@@ -27,6 +35,7 @@ let get_repository_hooks (hook_name : string) : string list =
 let exec_hook (hook_name : string) (hook_path : string) (args : string array) :
     (Unix.process_status, string) result =
   try
+    Log.debug "executing %s hook %s" hook_name hook_path;
     let pid =
       Unix.create_process hook_path
         (Array.append [| hook_name |] args)

@@ -68,3 +68,16 @@ You can also manually edit the gitconfig manually
 	commit-msg = ggh-conventional-commit
 ```
 
+
+## Integration with [pre-commit](https://pre-commit.com/)
+
+Integrating with pre-commit configs shouldn't be affected and should work automtically.
+However, when installing pre-commit hooks, pre-commit currently exits if the `core.hooksPath`
+is set (which `ggh` relies on). To get around this, the following command 
+
+```bash
+ggh pre-commit install
+```
+
+This will run `pre-commit install` but set the environment variable `GIT_CONFIG=/dev/null` 
+(meaning run without reading the users gitconfig)
