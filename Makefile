@@ -11,8 +11,12 @@ install-all-deps:
 
 build: install-deps
 	@dune build
+
 fmt:
 	@dune fmt
+
+lint:
+	@dune fmt --preview
 
 install:
 	@dune build

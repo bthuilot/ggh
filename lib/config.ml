@@ -8,6 +8,27 @@
 
 module Log = Dolog.Log
 
+exception ValidationError of string
+
+(** [all_hooks] is the list of supported hooks for ggh *)
+let all_hooks =
+  [
+    "pre-commit";
+    "commit-msg";
+    "applypatch-msg";
+    "post-update";
+    "pre-merge-commit";
+    "pre-receive";
+    "update";
+    "pre-applypatch";
+    "pre-push";
+    "prepare-commit-msg";
+    "fsmonitor-watchman";
+    "pre-rebase";
+    "push-to-checkout";
+    "post-commit";
+  ]
+
 (** [get_env] returns the value of an environment variable, or [default] if not
     set. *)
 let get_env ?(default : string = "") (var : string) =
@@ -95,3 +116,35 @@ let get_recursive_hooks () : Git.value list =
   match Git.get_config_values "additionalHooksPath" with
   | Some paths -> paths
   | None -> []
+
+(** [default_hooks_dir] is the directory that the global hooks will live if not
+    provided by the user (see [get_hooks_dir]). each item in the directory
+    should be a system link to the binary ggh. *)
+let default_hooks_dir = "/usr/local/bin/ggh-hooks"
+
+(** [get_hooks_dir] will return the hooks directory where the symlinked hook
+    executables are located. This value defaults to [default_hooks_dir] unless
+    overrwritten with the environment variable "GGH_HOOKS_DIR" *)
+let get_hooks_dir =
+  try Sys.getenv "GGH_HOOKS_DIR"
+  with Not_found ->
+    Log.info "defaulting to hooks directory %s" default_hooks_dir;
+    default_hooks_dir
+
+(** [validate_hooks_dir] will validate that all hooks are symlinked to the
+    current running binary in the directory returned from [get_hooks_dir]. If
+    any are not valid, a [ValidationError] is raised. *)
+let validate_hooks_dir (dir : string) =
+  let current_bin = Sys.argv.(0) in
+  List.iter
+    (fun h ->
+      try
+        let l = Unix.readlink (dir ^ "/" ^ h) in
+        if l <> current_bin then
+          raise
+            (ValidationError
+               ("hook " ^ h ^ " does not system link to current binary "
+              ^ current_bin))
+      with Unix.Unix_error (_, _, _) ->
+        raise (ValidationError ("unable to read link for hook " ^ h)))
+    all_hooks
