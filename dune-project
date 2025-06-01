@@ -17,7 +17,7 @@
 
 (package
  (name ggh)
- (synopsis "Global git hooks.")
+ (synopsis "Global git hooks")
  (description "Globally available git hooks to be run on all your git projects.")
  (depends
   (ocaml (>= 5.1.0))
