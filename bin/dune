@@ -1,11 +1,10 @@
 (rule
  (targets metadata.ml)
- (deps metadata.ml.in)
  (action
   (with-outputs-to
    metadata.ml
    (bash
-    "sed -e \"s,@VERSION@,$(git describe --tags --always --dirty),g\" -e \"s,@COMMIT@,$(git rev-parse --short HEAD),g\" %{dep:metadata.ml.in}"))))
+    "sed -e \"s,@VERSION@,%{env:GGH_VERSION=0.0.0+dev},g\" -e \"s,@COMMIT@,%{env:GGH_COMMIT=unknown},g\" %{dep:metadata.ml.in}"))))
 
 (executable
  (public_name ggh)

@@ -2,12 +2,20 @@ SYSTEM_BIN := /usr/local/bin/ggh
 BIN := "_build/default/bin/main.exe"
 HOOKS_PATH := /usr/local/ggh/
 
+export GGH_VERSION ?= $(shell git describe --tags --always --dirty)
+export GGH_COMMIT ?= $(shell git rev-parse --short HEAD)
+
+
 .PHONY: install-deps install-all-deps build install
 install-deps:
 	@opam install . --deps-only
 
 install-all-deps:
 	@opam install . --deps-only --with-test --with-doc
+
+print-version:
+	@echo "version: ${GGH_VERSION}"
+	@echo "commit: ${GGH_COMMIT}"
 
 build: install-deps
 	@dune build

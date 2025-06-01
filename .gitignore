@@ -205,3 +205,6 @@ setup.log
 _opam/
 
 # End of https://www.toptal.com/developers/gitignore/api/emacs,ocaml,jetbrains+all,macos
+
+VERSION
+COMMIT
