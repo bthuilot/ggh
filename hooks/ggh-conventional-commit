@@ -1,11 +1,13 @@
 #!/bin/bash
 
-if [[ GGH_IGNORE_CC == 1 ]]; then
+set -e
+
+if [ -n "$GGH_IGNORE_CC" ]; then
     echo "ggh-conventional-commit: ignoring due to override"
     exit 0
 fi
 
-COMMIT_MSG="$(cat $1)"
+COMMIT_MSG="$(cat "$1")"
 
 CC_REGEX="^((build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\(.*\))?!?: .*)"
 

@@ -1,12 +1,13 @@
 #!/bin/bash
 
+set -e
 
-if [[ GGH_IGNORE_SIGNEDOFF == 1 ]]; then
+if [ -n "$GGH_IGNORE_SIGNEDOFF" ]; then
     echo "ggh-signed-off: ignoring due to override"
     exit 0
 fi
 
-COMMIT_MSG="$(cat $1)"
+COMMIT_MSG="$(cat "$1")"
 
 SIGNEDOFF_REGEX=".*Signed-off-by: .* <.*>[[:space:]]*"
 
