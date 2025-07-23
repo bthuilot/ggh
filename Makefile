@@ -1,3 +1,11 @@
+# Copyright (C) 2025 Bryce Thuilot <bryce@thuilot.io>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the FSF, either version 3 of the License, or (at your option) any later version.
+# See the LICENSE file in the root of this repository for full license text or
+# visit: <https://www.gnu.org/licenses/gpl-3.0.html>.
+
 SYSTEM_BIN := /usr/local/bin/ggh
 BIN := "_build/default/bin/main.exe"
 HOOKS_PATH := /usr/local/ggh/
@@ -33,7 +41,7 @@ install:
 	@sudo mkdir -p ${HOOKS_PATH}
 	@GGH_LOG_LEVEL=debug GGH_USE_STDERR=1 sudo -E ${SYSTEM_BIN} install
 	@GGH_LOG_LEVEL=debug GGH_USE_STDERR=1 ${SYSTEM_BIN} configure
-	@sudo cp -p hooks/ggh-gitleaks /usr/local/bin/ggh-gitleaks
-	@sudo cp -p hooks/ggh-conventional-commit /usr/local/bin/ggh-conventional-commit
-	@sudo cp -p hooks/ggh-signed-off /usr/local/bin/ggh-signed-off
+	@sudo cp -p hooks/ggh-gitleaks.sh /usr/local/bin/ggh-gitleaks
+	@sudo cp -p hooks/ggh-conventional-commit.sh /usr/local/bin/ggh-conventional-commit
+	@sudo cp -p hooks/ggh-signed-off.sh /usr/local/bin/ggh-signed-off
 

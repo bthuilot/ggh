@@ -1,4 +1,3 @@
-(* *)
 module Log = Dolog.Log
 
 exception GitFailure of string

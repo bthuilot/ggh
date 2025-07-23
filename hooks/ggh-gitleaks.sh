@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (C) 2025 Bryce Thuilot <bryce@thuilot.io>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -6,11 +7,16 @@
 # See the LICENSE file in the root of this repository for full license text or
 # visit: <https://www.gnu.org/licenses/gpl-3.0.html>.
 
-version: 2
-updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    commit-message:
-      prefix: "chore(deps)"
-    schedule:
-      interval: "weekly"
+
+if [ -n "$GGH_IGNORE_GITLEAKS" ]; then
+    echo "ggh-gitleaks: ignoring due to override"
+    exit 0
+fi
+
+if ! command -v gitleaks >/dev/null 2>&1
+then
+    echo "gitleaks not installed, skipping" >&2
+    exit 0
+fi
+
+gitleaks git --pre-commit --redact --staged --verbose
