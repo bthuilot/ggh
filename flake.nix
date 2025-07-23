@@ -14,10 +14,8 @@
 
         ocamlPackages = pkgs.ocaml-ng.ocamlPackages;
 
-        gghVersion =
-          if self.sourceInfo ? tag && self.sourceInfo.tag != null
-          then self.sourceInfo.tag
-          else "unknown-tag";
+        gghVersion = "nix-flake";
+        # since i cant read git tag from nix just make it a 'nix' version
 
         gghCommit =
           if self ? shortRev && self.shortRev != null
@@ -32,19 +30,19 @@
           else "0.0.0-git-${if gghCommit != "unknown-commit" then gghCommit else "dev"}";
 
       in
-      {
-        packages.default = ocamlPackages.buildDunePackage {
-          pname = "ggh";
-          version = projectVersion;
-          src = self;
+        {
+          packages.default = ocamlPackages.buildDunePackage {
+            pname = "ggh";
+            version = projectVersion;
+            src = self;
 
-          nativeBuildInputs = [];
+            nativeBuildInputs = [];
             
-          buildInputs = [
-            ocamlPackages.dolog
-          ];
+            buildInputs = [
+              ocamlPackages.dolog
+            ];
 
-          preBuild = ''
+            preBuild = ''
             export GGH_VERSION="${gghVersion}"
             export GGH_COMMIT="${gghCommit}"
 
@@ -52,27 +50,27 @@
             echo "nix build: GGH_COMMIT set to '$GGH_COMMIT'"
           '';
             
-        };
+          };
 
-        apps.default = flake-utils.lib.mkApp {
-          drv = self.packages.${system}.default;
-        };
+          apps.default = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.default;
+          };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.ocaml
-            pkgs.dune_3
-            pkgs.ocamlformat
-            
-            ocamlPackages.ocaml
-            ocamlPackages.findlib
-            ocamlPackages.ocaml-lsp
-            ocamlPackages.utop
-            ocamlPackages.alcotest
+          devShells.default = pkgs.mkShell {
+            buildInputs = [
+              pkgs.ocaml
+              pkgs.dune_3
+              pkgs.ocamlformat
 
-            ocamlPackages.dolog
-            
-          ];
-        };
-      });
+              ocamlPackages.ocaml
+              ocamlPackages.findlib
+              ocamlPackages.ocaml-lsp
+              ocamlPackages.utop
+              ocamlPackages.alcotest
+
+              ocamlPackages.dolog
+
+            ];
+          };
+        });
 }
