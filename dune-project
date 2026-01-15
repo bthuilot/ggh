@@ -1,6 +1,7 @@
 (lang dune 3.17)
 
 (name ggh)
+(version 0.2.2)
 
 (generate_opam_files true)
 
@@ -24,6 +25,7 @@
    dune
   (dolog (>= 4.0.0))
   (ocamlformat :with-test)
+  (utop :with-test)
   (alcotest :with-test))
  (tags
   (git sdlc pre-commit supply-chain)))

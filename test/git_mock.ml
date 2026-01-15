@@ -31,5 +31,5 @@ let print_global_config ?(all : bool = false) (key : string) : unit =
 let clear_values (keys : string list) : unit =
   List.map (fun k -> (k, Sys.command ("git config --unset-all " ^ k))) keys
   |> List.iter (function
-       | _, 0 -> ()
-       | k, _ -> raise (GitFailure ("failed to remove key " ^ k)))
+    | _, 0 -> ()
+    | k, _ -> raise (GitFailure ("failed to remove key " ^ k)))

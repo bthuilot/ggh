@@ -1,4 +1,4 @@
-(version 16.0.0)
+(version 17.0.0)
 
 (build
  (run
@@ -16,6 +16,6 @@
 
 (source
  (fetch
-  (url https://erratique.ch/software/uuseg/releases/uuseg-16.0.0.tbz)
+  (url https://erratique.ch/software/uuseg/releases/uuseg-17.0.0.tbz)
   (checksum
-   sha512=355139aee2a72baddf3d811e522948456147546ee946b6eca20f57711865770d4b8d32ea01a7338b8e6cdedb4423ee65cee387704bb9c0c057bcbd65012679b8)))
+   sha512=8d81ca0a57516b94c66a0da256f3455ba26b0875ca9e354a665ec30223c9216be57abdd52c39c8c384fe127df8060c18ff07d92d4d9f53892bc4ed20699df3ef)))

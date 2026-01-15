@@ -9,96 +9,108 @@
 module Log = Dolog.Log
 module StringSet = Set.Make (String)
 
-(** [get_repository_hooks] returns the current git directory's hook for the
-    given hook name. *)
-let get_repository_hooks (hook_name : string) : string list =
-  match Git.get_dir () with
-  | None ->
-      Log.debug "no toplevel git directory found";
-      []
-  | Some dir ->
-      let hook_path = dir ^ "/.git/hooks/" ^ hook_name in
-      Log.debug "checking for local hook %s" hook_path;
-      if Sys.file_exists hook_path then (
-        Log.debug "found local hook for %s" hook_path;
-        [ hook_path ])
-      else (
-        Log.debug "no local hook found for %s" hook_path;
-        [])
+exception
+  ExecError of { process_name : string; process_status : Unix.process_status }
+(** [ExecError] is an exception that is raised when a hook process is executed
+    by doesn't complete successfully *)
 
-(** [exec_hook] will execute a hook and return a result with [Ok] being a
-    [Unix.process_status] if the execution was started successfully or an
-    [Error] that has a description of the error. with [hook_name] set as the
-    first argument with [args] passed as the rest. This is done so that the
-    called process can know what hook is being executed (i.e. pre-commit vs
-    commit-msg vs pre-push). *)
-let exec_hook (hook_name : string) (hook_path : string) (args : string array) :
-    (Unix.process_status, string) result =
-  try
-    Log.debug "executing %s hook %s" hook_name hook_path;
-    let pid =
-      Unix.create_process hook_path
-        (Array.append [| hook_name |] args)
-        Unix.stdin Unix.stdout Unix.stderr
-    in
-    let _, status = Unix.waitpid [] pid in
-    Ok status
-  with Unix.Unix_error (e, _, _) -> Error (Unix.error_message e)
-
-let rec exec_all_hooks (hook_name : string) (args : string array) :
-    string list -> (unit, string * int) result = function
-  | [] -> Ok ()
-  | h :: hs -> (
-      Log.debug "executing %s" h;
-      match exec_hook hook_name h args with
-      | Ok (Unix.WEXITED 0) -> exec_all_hooks hook_name args hs
-      | Ok (Unix.WEXITED code) ->
-          Error
-            (Printf.sprintf "hook '%s' failed with exit code %d" h code, code)
-      | Ok (Unix.WSIGNALED signal) ->
-          Error
-            ( Printf.sprintf "hook '%s' kill by signal %d" h signal,
-              if signal < 128 then signal + 128 else signal )
-      | Ok (Unix.WSTOPPED signal) ->
-          Error
-            ( Printf.sprintf "hook '%s' stopped by signal %d" h signal,
-              if signal < 128 then signal + 128 else signal )
-      | Error s ->
-          Log.warn "failed to start process '%s': %s" h s;
-          exec_all_hooks hook_name args hs)
-
-let get_user_hooks (hook_name : string) : string list =
-  let hook_cfgs = Config.get_hooks hook_name
-  and recusrive_dirs =
-    Config.get_recursive_hooks ()
-    |> List.map (fun (s, v) -> (s, Utils.trim_suffix "/" v ^ "/" ^ hook_name))
-    (* filter files that actually exist *)
-    |> List.filter (fun (_, v) -> Sys.file_exists v)
+(** [exec_hooks] will exec each process in the given list. The process will be
+    given the arguments passed to ggh program and additionally the first
+    argument (i.e. the name of the invoked process) will be set to the name of
+    the hook being executed. *)
+let exec_hooks (processes : string list) (hook_name : string)
+    (args : string array) =
+  let process_args = Array.append [| hook_name |] args in
+  let exec process_name =
+    try
+      Log.debug "executing %s hook '%s'" hook_name process_name;
+      let pid =
+        Unix.create_process process_name process_args Unix.stdin Unix.stdout
+          Unix.stderr
+      in
+      let _, status = Unix.waitpid [] pid in
+      Ok status
+    with Unix.Unix_error (e, _, _) -> Error (Unix.error_message e)
   in
-  (* check scope is trusted, if not ask them to use *)
-  (* this should be moved into Config module *)
-  List.fold_left
-    (fun acc (s, h) ->
-      let scope_str = Git.scope_to_string s
-      and trusted_scope = Config.is_trusted_scope s in
-      (* TODO(bryce): prompt user for this *)
-      (* || Tty.confirm ("run hook '" ^ h ^ "' from scope '" ^ scope_str ^ "'")) *)
-      if StringSet.mem h acc |> not && trusted_scope then StringSet.add h acc
-      else (
-        Printf.printf "skipping untrusted hook '%s' from scope '%s'\n" h
-          scope_str;
-        flush stdout;
-        acc))
-    StringSet.empty
-    (hook_cfgs @ recusrive_dirs)
-  |> StringSet.to_list
+  let rec iter_exec = function
+    | [] -> ()
+    | process :: processes' -> (
+        match exec process with
+        | Ok (Unix.WEXITED 0) -> iter_exec processes'
+        | Ok status ->
+            let err =
+              ExecError { process_status = status; process_name = process }
+            in
+            raise err
+        | Error s ->
+            Log.warn "skipping %s hook process '%s, failed to start: %s"
+              hook_name process s;
+            iter_exec processes')
+  in
+  iter_exec processes
 
-(** [run_hooks] will run all hooks for the given hook name. It will find the
-    processes to execute by looking at the values set for the hook name is the
-    'ggh' gitconfig in scope [Git.Any]. Additionally it will execute the hooks
-    confiured in the repository's hook folder in the git directory. *)
-let run_hooks (hook_name : string) (args : string array) :
-    (unit, string * int) result =
-  let user_hooks = get_user_hooks hook_name
-  and repo_hooks = get_repository_hooks hook_name in
-  exec_all_hooks hook_name args (user_hooks @ repo_hooks)
+(** [get_repository_hooks] will find additional hooks that should be executed
+    based on the user definied additional hook paths. See
+    [Config.get_additional_hook_paths] *)
+let get_additional_hooks (hook_name : string) : string list =
+  Config.get_additional_hook_paths ()
+  |> List.map (fun v -> Utils.trim_suffix "/" v ^ "/" ^ hook_name)
+  |> List.filter Sys.file_exists
+
+(** [get_repository_hooks] returns the current git directory's hook for the
+    given hook name. i.e. .git/hooks/$NAME where $NAME is the hook name *)
+let get_repository_hooks (hook_name : string) : string list =
+  let dir = Git.get_dir () in
+  let hook_path = dir ^ "/hooks/" ^ hook_name in
+  Log.debug "checking for local hook %s" hook_path;
+  if Sys.file_exists hook_path then (
+    Log.info "found local hook for %s" hook_path;
+    [ hook_path ])
+  (* TODO(bryce):
+   additionally read ggh configs from local *)
+    else (
+    Log.debug "no local hook found for %s" hook_path;
+    [])
+
+(** [filter_untrusted_dirs] will filter a list of directories, removing any that
+    are not "trusted". See [Config.trust_mode] for more info *)
+let filter_untrusted_dirs (dirs : string list) : string list =
+  let trust_mode = Config.get_trust_mode () in
+  let is_trusted =
+    match trust_mode with
+    | Config.All -> fun _ -> true
+    | Config.Blacklist bl -> fun d -> List.exists (Utils.is_subpath d) bl |> not
+    | Config.Whitelist wl -> fun d -> List.exists (Utils.is_subpath d) wl
+  in
+  let filter d =
+    let trusted = is_trusted d in
+    let () =
+      if trusted then Log.info "allowing hook directory '%s'" d
+      else Log.warn "skipping untrusted hook directory '%s'" d
+    in
+    trusted
+  and () =
+    Log.info "filtering trusted directories in mode %s"
+      (Config.format_trust_mode trust_mode)
+  in
+  List.filter filter dirs
+
+(** [run] will run all hooks for the given hook name. It will get all the hooks
+    configured for the git config value 'ggh.$HOOK_NAME' where '$HOOK_NAME' is
+    the name of the hook passed to the function (see [Config.parse_hooks].
+    Additionally, it will find any additionally configured hook paths and
+    execute the file with the same name as the hook in that path (see
+    [Config.get_additional_hook_paths]. Lastly it will look for the hook in the
+    local repository path [Git.get_dir] and if trusted, will execute that local
+    hook as well. *)
+let run (hook_name : string) (args : string array) =
+  let () = Log.info "retrieving hooks configured via ggh"
+  and ggh_hooks = Config.parse_hooks hook_name
+  and () = Log.info "retrieving additional hook paths"
+  and additional_hook_paths = get_additional_hooks hook_name
+  and () = Log.info "retrieving repo level hooks"
+  and repo_hooks = get_repository_hooks hook_name |> filter_untrusted_dirs in
+  let all_hooks =
+    List.flatten [ ggh_hooks; additional_hook_paths; repo_hooks ]
+  in
+  exec_hooks all_hooks hook_name args
