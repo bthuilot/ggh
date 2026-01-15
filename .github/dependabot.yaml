@@ -13,4 +13,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
