@@ -12,7 +12,7 @@ module Hooks = Ggh.Hooks
 
 (** [hook_name] is the name of the hook we are executing. It is determined from
     the name of the binary that git executed *)
-let hook_name () : string =
+let parse_hook_name () : string =
   try
     let hook = Sys.getenv "GGH_HOOK_OVERRIDE" in
     Log.warn "hook overriden from enviroment to %s" hook;
@@ -37,14 +37,11 @@ let parse_command () =
       | "--version" ->
           Info.version ();
           0
-      | "install" ->
-          Install.link_hooks sub_args;
-          0
-      | "configure" ->
-          Install.configure sub_args;
-          0
       | "pre-commit" ->
           Precommit.exec sub_args;
+          0
+      | "--print-hooks" ->
+          Info.print_hooks ();
           0
       | _ ->
           Printf.printf "unknown argument '%s'\n" cmd;
@@ -52,19 +49,45 @@ let parse_command () =
     in
     exit exit_code
 
+let exit_from_status (status : Unix.process_status) =
+  let code =
+    match status with
+    | Unix.WEXITED code -> code
+    | Unix.WSIGNALED signal -> if signal < 128 then signal + 128 else signal
+    | Unix.WSTOPPED signal -> if signal < 128 then signal + 128 else signal
+  in
+  exit code
+
+let print_hook_error (hook : string) (process : string)
+    (status : Unix.process_status) =
+  let prefix = hook ^ " hook process '" ^ process ^ "'"
+  and msg =
+    match status with
+    | Unix.WEXITED code -> Printf.sprintf "exited with non-zero code '%d'" code
+    | Unix.WSIGNALED signal ->
+        Printf.sprintf "was killed by signal %s" (Sys.signal_to_string signal)
+    | Unix.WSTOPPED signal ->
+        Printf.sprintf "was stopped by signal %s" (Sys.signal_to_string signal)
+  in
+  Printf.fprintf stderr "HOOK ERROR: %s %s" prefix msg
+
+let exec_hook (hook_name : string) =
+  Log.info "executing hook '%s'" hook_name;
+  let args = Array.sub Sys.argv 1 (Array.length Sys.argv - 1) in
+  try
+    Hooks.run hook_name args;
+    Log.info "%s hook execution completed successfully" hook_name
+  with Hooks.ExecError { process_status = status; process_name = process } ->
+    Log.error "hook exited with non-zero code: %s" process;
+    print_hook_error hook_name process status;
+    exit_from_status status
+
 (* Entrypoint *)
 let () =
   Config.init ();
-  let hook = hook_name () in
-  match hook with
+  let hook_name = parse_hook_name () in
+  match hook_name with
   (* In this case ggh was called as 'ggh', meaning we should parse the CLI args *)
   | "ggh" -> parse_command ()
   (* The program was executed under a different name *)
-  | githook -> (
-      Log.info "executing hook '%s'" githook;
-      let args = Array.sub Sys.argv 1 (Array.length Sys.argv - 1) in
-      match Hooks.run_hooks githook args with
-      | Ok _ -> Log.info "hook returned success"
-      | Error (s, c) ->
-          Log.info "hook returned error: %s" s;
-          exit c)
+  | _ -> exec_hook hook_name

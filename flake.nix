@@ -14,9 +14,6 @@
 
         ocamlPackages = pkgs.ocaml-ng.ocamlPackages;
 
-        gghVersion = "nix-flake";
-        # since i cant read git tag from nix just make it a 'nix' version
-
         gghCommit =
           if self ? shortRev && self.shortRev != null
           then self.shortRev
@@ -24,11 +21,10 @@
           then self.dirtyShortRev
           else "unknown-commit";
 
-        projectVersion =
-          if gghVersion != "unknown-tag"
-          then gghVersion
-          else "0.0.0-git-${if gghCommit != "unknown-commit" then gghCommit else "dev"}";
-
+        duneProject = builtins.readFile ./dune-project;
+        # Match the line (version <version>) and capture the middle part
+        versionMatch = builtins.match ".*\\(version ([^)]+)\\).*" duneProject;
+        projectVersion = if versionMatch != null then builtins.head versionMatch else "0.0.0+git-${gghCommit}";
       in
         {
           packages.default = ocamlPackages.buildDunePackage {
@@ -43,10 +39,7 @@
             ];
 
             preBuild = ''
-            export GGH_VERSION="${gghVersion}"
             export GGH_COMMIT="${gghCommit}"
-
-            echo "nix build: GGH_VERSION set to '$GGH_VERSION'"
             echo "nix build: GGH_COMMIT set to '$GGH_COMMIT'"
           '';
             

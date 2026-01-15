@@ -6,47 +6,37 @@
  * in the root of the repository.
  *)
 
+exception ValidationError of string
+(** [ValidationError] is an exception thrown when functions in are given invalid
+    or malformed values from the user. The error will contain a message
+    describing the issue *)
+
+type trust_mode = Whitelist of string list | Blacklist of string list | All
+
 val init : unit -> unit
 (** [init] will initialize the configuration for the current process including
-    the configuring the global logger. *)
-
-val get_hooks : string -> Git.value list
-(** [get_hooks] returns the list of process names to start for the given hook.
-*)
-
-val is_trusted_scope : Git.scope -> bool
-(** [is_trusted_scope] returns if the current scope is trusted for Git config
-    values *)
-
-val get_whitelisted_dirs : unit -> string list
-(** [get_whitelisted_dirs] returns a list of directories that are considered
-    trusted *)
-
-val get_user_trust_mode : unit -> string option
-(** [get_trust_mode] returns the trust mode configured by the user. Will be
-    [None] if no option was provided *)
-
-val get_recursive_hooks : unit -> Git.value list
-(** [get_recursive_hooks] returns a list of directories that user has configured
-    to additionally be called for the current hook. I should be thought of a sub
-    'core.hooksPath' *)
-
-exception ValidationError of string
-
-val validate_hooks_dir : string -> unit
-(** [validate_hooks_dir] will validate that all hooks are symlinked to the
-    current running binary in the directory returned from [get_hooks_dir]. If
-    any are not valid, a [ValidationError] is raised. *)
+    the configuring the global logger and setting trust mode and additional
+    hooks path. It should be called on application startup, before any other
+    functions from [Config] are called *)
 
 val all_hooks : string list
 (** [all_hooks] is a list of all supported git hooks *)
 
-val default_hooks_dir : string
-(** [default_hooks_dir] is the directory that the global hooks will live if not
-    provided by the user (see [get_hooks_dir]). each item in the directory
-    should be a system link to the binary ggh. *)
+val get_trust_mode : unit -> trust_mode
+(** [get_trust_mode] returns the [trust_mode] for the currrent program *)
 
-val get_hooks_dir : string
-(** [get_hooks_dir] will return the hooks directory where the symlinked hook
-    executables are located. This value defaults to [default_hooks_dir] unless
-    overrwritten with the environment variable "GGH_HOOKS_DIR" *)
+val format_trust_mode : trust_mode -> string
+(** [format_trust_mode] will format the current [trust_mode] into a string for
+    printing and/or logging. NOTE: [init] should be called before accessing *)
+
+val get_additional_hook_paths : unit -> string list
+(** [get_additional_hook_paths] returns a list of directories that user has
+    configured to additionally be called for the current hook. It should be
+    thought of as additional 'core.hooksPath'. NOTE: [init] should be called
+    before accessing *)
+
+val parse_hooks : string -> string list
+(** [parse_hooks] returns the list of process names or binaries to start for the
+    given hook. This is not parsed during [init] since the name of the hook
+    should be parsed from the first program argument. The hook name must be one
+    of [all_hooks], and a [ValidationError] will be raised if not. *)

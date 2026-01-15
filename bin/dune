@@ -1,10 +1,9 @@
 (rule
  (targets metadata.ml)
  (action
-  (with-outputs-to
+  (write-file
    metadata.ml
-   (bash
-    "sed -e \"s,@VERSION@,%{env:GGH_VERSION=0.0.0+dev},g\" -e \"s,@COMMIT@,%{env:GGH_COMMIT=unknown},g\" %{dep:metadata.ml.in}"))))
+   "let version = \"%{version:ggh}\"let commit = \"%{env:GGH_COMMIT_SHA=unknown}\"")))
 
 (executable
  (public_name ggh)

@@ -10,6 +10,36 @@ module Log = Dolog.Log
 
 exception ValidationError of string
 
+type trust_mode = Whitelist of string list | Blacklist of string list | All
+
+type state = {
+  mutable log_channel : out_channel;
+  mutable log_level : Log.log_level;
+  mutable additional_hooks : string list;
+  mutable trust : trust_mode;
+}
+(** [state] represents the configuration of the ggh program *)
+
+(** [t] represents the current state of the config. The values of [t] are parsed
+    and populated after calling [init] *)
+let t =
+  {
+    log_channel = stderr;
+    log_level = Log.INFO;
+    additional_hooks = [];
+    trust = All;
+  }
+
+(** [get_additional_hook_paths] returns a list of directories that user has
+    configured to additionally be called for the current hook. It should be
+    thought of as additional 'core.hooksPath'. NOTE: [init] should be called
+    before accessing *)
+let get_additional_hook_paths () : string list = t.additional_hooks
+
+(** [format_trust_mode] will format the current [trust_mode] into a string for
+    printing and/or logging. NOTE: [init] should be called before accessing *)
+let get_trust_mode () : trust_mode = t.trust
+
 (** [all_hooks] is the list of supported hooks for ggh *)
 let all_hooks =
   [
@@ -29,16 +59,12 @@ let all_hooks =
     "post-commit";
   ]
 
-(** [get_env] returns the value of an environment variable, or [default] if not
-    set. *)
-let get_env ?(default : string = "") (var : string) =
-  try Sys.getenv var with Not_found -> default
-
-(** [log_channel] creates the out_channel to be used for the logger. Will create
-    the file "[base_dir]/[folder]/main.log" *)
-let log_channel () : out_channel =
+(** [create_log_channel] creates the out_channel to be used for the logger. Will
+    create the file "ggh.log" in either the temporary directory or the directory
+    the environment value "XDG_CACHE_HOME" points to, if set *)
+let create_log_channel () : out_channel =
   let log_dir =
-    get_env ~default:(Filename.get_temp_dir_name ()) "XDG_CACHE_HOME"
+    Utils.get_env ~default:(Filename.get_temp_dir_name ()) "XDG_CACHE_HOME"
   in
   Out_channel.open_gen
     [ Out_channel.Open_creat; Out_channel.Open_append ]
@@ -47,15 +73,12 @@ let log_channel () : out_channel =
 (** [parse_log_level] will return the desired log level from the environment and
     falls back to git config value. If nothing is defined it uses [Log.INFO] *)
 let parse_log_level () : Log.log_level =
-  let lvl =
-    get_env
-      ~default:
-        (match Git.get_config_value "logLevel" with
-        | None -> "info"
-        | Some (_, l) -> l)
-      "GGH_LOG_LEVEL"
+  let config_level =
+    try Git.get_config_values "logLevel" |> List.hd
+    with Failure _ | Git.ExecError _ -> "info"
   in
-  match String.lowercase_ascii lvl with
+  let level = Utils.get_env ~default:config_level "GGH_LOG_LEVEL" in
+  match String.lowercase_ascii level with
   | "debug" -> Log.DEBUG
   | "info" -> Log.INFO
   | "warn" -> Log.WARN
@@ -64,87 +87,109 @@ let parse_log_level () : Log.log_level =
       Log.warn "unknown log level, ignoring";
       Log.INFO
 
-(** [init_logger] will initialize the global logger. Will set the level and the
-    output channel. The output channel will be either $HOME/.ggh/main.log if
-    $HOME is set, or /$TMPDIR/ggh/main.log if TMPDIR is set. If $GGH_USER_STDERR
-    is set, output will be written to STDERR. *)
-let init_logger ?(lvl = Log.INFO) () =
-  Log.set_log_level lvl;
-  try
-    let _ = Sys.getenv "GGH_USE_STDERR" in
-    if Unix.isatty Unix.stderr then Log.color_on ();
-    Log.set_output stderr;
-    Log.debug "using STDERR for logs"
-  with Not_found -> log_channel () |> Log.set_output
-
-(** [init] initiations the configuration of the application *)
-let init () =
-  let log_level = parse_log_level () in
-  init_logger ~lvl:log_level ()
-
-let is_trusted_scope = function
-  | Git.Global -> true
-  | Git.System -> true
-  | _ -> false
-
-let get_whitelisted_dirs () : string list =
-  let global =
-    Git.get_config_values ~scope:Git.Global "trustedPaths"
-    |> Option.value ~default:[]
-  and system =
-    Git.get_config_values ~scope:Git.Global "trustedPaths"
-    |> Option.value ~default:[]
+(** [parse_log_channel ()] will parse the [out_channel] for logs to be written
+    to. By default logs will be written to the log file created by
+    [create_log_channel], unless the user sets the git config value
+    'ggh.useStderr' or the enviornment variable "GGH_USE_STDERR" to a non-empty
+    string *)
+let parse_log_channel () : out_channel =
+  let config_use_stderr =
+    try Git.get_config_values "useStderr" |> List.hd
+    with Failure _ | Git.ExecError _ -> ""
   in
-  List.map (fun (_, v) -> v) (global @ system)
+  let use_stderr =
+    Utils.get_env ~default:config_use_stderr "GGH_USE_STDERR" != ""
+  in
+  if use_stderr then (
+    if Unix.isatty Unix.stderr then Log.color_on ();
+    stderr)
+  else create_log_channel ()
 
-let get_user_trust_mode () : string option =
-  let global_trust = Git.get_config_value ~scope:Git.Global "trustMode"
-  and system_trust = Git.get_config_value ~scope:Git.System "trustMode" in
-  match global_trust with
-  | Some (_, v) -> Some v
-  | _ -> ( match system_trust with Some (_, v) -> Some v | _ -> None)
+(** [format_trust_mode mode] will format the current [trust_mode] into a string
+    for printing and/or logging. NOTE: [init] should be called before accessing
+*)
+let format_trust_mode (mode : trust_mode) =
+  let format_dirs =
+    List.fold_left
+      (fun acc dir -> (if acc == "" then "" else acc ^ ", ") ^ dir)
+      ""
+  in
+  match mode with
+  | Whitelist dirs -> "whitelist=[" ^ format_dirs dirs ^ "]"
+  | Blacklist dirs -> "blacklist=[" ^ format_dirs dirs ^ "]"
+  | All -> "all"
 
-(* TODO(bryce): these should be refactored to just return string lists,
-   filtering out the [Git.values] that dont come from a trusted scope. *)
+(** [filter_relative_paths paths] will filter [paths], removing any path that is
+    relative or implict (i.e. only absolute paths) *)
+let filter_realtive_paths (paths : string list) =
+  List.filter
+    (fun p ->
+      if Filename.is_relative p || Filename.is_implicit p then (
+        Log.warn "ignoring realtive trust path %s" p;
+        false)
+      else true)
+    paths
 
-(** [get_hooks] returns the paths to the user defined binaries to execute for
-    the given hook name. *)
-let get_hooks (hook_name : string) =
-  match Git.get_config_values hook_name with Some hooks -> hooks | None -> []
+let parse_trust_mode () : trust_mode =
+  let trust_mode =
+    try Git.get_config_values "trustMode" |> List.hd
+    with Failure _ | Git.ExecError _ -> "all"
+  and parse mode =
+    match String.lowercase_ascii mode with
+    | "whitelist" ->
+        Whitelist
+          (Git.get_config_values "whitelistedPath" |> filter_realtive_paths)
+    | "blacklist" ->
+        Blacklist
+          (Git.get_config_values "blacklistedPath" |> filter_realtive_paths)
+    | "all" -> All
+    | _ ->
+        Log.warn "unknown trust mode, defaulting to all";
+        All
+  in
+  try parse trust_mode
+  with Git.ExecError e ->
+    Log.warn "unable to parse trust mode '%s', defaulting to all: %s" trust_mode
+      e;
+    All
 
-let get_recursive_hooks () : Git.value list =
-  match Git.get_config_values "additionalHooksPath" with
-  | Some paths -> paths
-  | None -> []
+(** [parse_hooks hook_name] returns the paths to the user defined binaries to
+    execute for the git hook [hook_name]. *)
+let parse_hooks (hook_name : string) : string list =
+  if List.mem hook_name all_hooks |> not then
+    raise (ValidationError ("invalid hook name '" ^ hook_name ^ "'"));
+  try Git.get_config_values hook_name
+  with Git.ExecError e ->
+    Log.warn "unable to retrieve hooks for '%s': %s" hook_name e;
+    []
 
-(** [default_hooks_dir] is the directory that the global hooks will live if not
-    provided by the user (see [get_hooks_dir]). each item in the directory
-    should be a system link to the binary ggh. *)
-let default_hooks_dir = "/usr/local/bin/ggh-hooks"
+let parse_additional_hook_paths () : string list =
+  try Git.get_config_values "additionalHooksPath"
+  with Git.ExecError e ->
+    Log.warn "Unable to parse additional hook paths from git: %s" e;
+    []
 
-(** [get_hooks_dir] will return the hooks directory where the symlinked hook
-    executables are located. This value defaults to [default_hooks_dir] unless
-    overrwritten with the environment variable "GGH_HOOKS_DIR" *)
-let get_hooks_dir =
-  try Sys.getenv "GGH_HOOKS_DIR"
-  with Not_found ->
-    Log.info "defaulting to hooks directory %s" default_hooks_dir;
-    default_hooks_dir
+(** [init_logger] will initialize the global logger to use the values specified
+    in [t] *)
+let init_logger () =
+  begin
+    Log.set_log_level t.log_level;
+    Log.set_output t.log_channel
+  end
 
-(** [validate_hooks_dir] will validate that all hooks are symlinked to the
-    current running binary in the directory returned from [get_hooks_dir]. If
-    any are not valid, a [ValidationError] is raised. *)
-let validate_hooks_dir (dir : string) =
-  let current_bin = Sys.argv.(0) in
-  List.iter
-    (fun h ->
-      try
-        let l = Unix.readlink (dir ^ "/" ^ h) in
-        if l <> current_bin then
-          raise
-            (ValidationError
-               ("hook " ^ h ^ " does not system link to current binary "
-              ^ current_bin))
-      with Unix.Unix_error (_, _, _) ->
-        raise (ValidationError ("unable to read link for hook " ^ h)))
-    all_hooks
+(** [init] will initialize the configuration for the current process including
+    the configuring the global logger and setting trust mode and additional
+    hooks path. It should be called on application startup, before any other
+    functions from [Config] are called *)
+let init () =
+  let log_level = parse_log_level ()
+  and log_channel = parse_log_channel ()
+  and additional_hook_paths = parse_additional_hook_paths ()
+  and trust = parse_trust_mode () in
+  begin
+    t.log_level <- log_level;
+    t.log_channel <- log_channel;
+    t.additional_hooks <- additional_hook_paths;
+    t.trust <- trust;
+    init_logger ()
+  end

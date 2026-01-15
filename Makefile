@@ -6,42 +6,62 @@
 # See the LICENSE file in the root of this repository for full license text or
 # visit: <https://www.gnu.org/licenses/gpl-3.0.html>.
 
-SYSTEM_BIN := /usr/local/bin/ggh
+
+LIBSOURCEDIR = ./lib
+BINSOURCEDIR = ./bin
+DUNELOCKSOURCEDIR = ./dune.lock
+
+LIBSOURCES := $(shell find $(LIBSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -name "dune")
+BINSOURCES := $(shell find $(BINSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -name "dune")
+DUNESOURCES := ./dune-project $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -or -name "*.dune")
+OPAMSOURCES := ./ggh.opam
+
+
 BIN := "_build/default/bin/main.exe"
-HOOKS_PATH := /usr/local/ggh/
 
-export GGH_VERSION ?= $(shell git describe --tags --always --dirty)
-export GGH_COMMIT ?= $(shell git rev-parse --short HEAD)
+SYSTEM_BIN := /usr/local/bin/ggh
+XDG_DATA_HOME ?= ${HOME}/.local/share
+USER_HOOKS_PATH := ${XDG_DATA_HOME}/ggh
 
-
-.PHONY: install-deps install-all-deps build install
+.PHONY: install-deps 
 install-deps:
 	@opam install . --deps-only
 
+.PHONY: install-all-deps
 install-all-deps:
 	@opam install . --deps-only --with-test --with-doc
 
-print-version:
-	@echo "version: ${GGH_VERSION}"
-	@echo "commit: ${GGH_COMMIT}"
+$(BIN): $(LIBSOURCES) $(BINSOURCES) $(DUNESOURCES) $(OPAMSOURCES)
+	@opam exec -- dune build
 
-build: install-deps
-	@dune build
+.PHONY: build
+build: $(BIN)
 
-fmt:
-	@dune fmt
-
+.PHONY: lint
 lint:
-	@dune fmt --preview
+	@opam exec -- dune fmt --preview
 
+.PHONY: lint-fix
+lint-fix:
+	@opam exec -- dune fmt
+
+.PHONY: install
 install:
-	@dune build
-	@echo "sudo is needed for install and will be used"
-	@sudo cp -a ${BIN} ${SYSTEM_BIN}
-	@sudo mkdir -p ${HOOKS_PATH}
-	@GGH_LOG_LEVEL=debug GGH_USE_STDERR=1 sudo -E ${SYSTEM_BIN} install
-	@GGH_LOG_LEVEL=debug GGH_USE_STDERR=1 ${SYSTEM_BIN} configure
-	@sudo cp -p hooks/ggh-gitleaks.sh /usr/local/bin/ggh-gitleaks
-	@sudo cp -p hooks/ggh-conventional-commit.sh /usr/local/bin/ggh-conventional-commit
-	@sudo cp -p hooks/ggh-signed-off.sh /usr/local/bin/ggh-signed-off
+	@if ! [ "$(shell id -u)" = 0 ]; then echo "this command must be run using sudo"; exit 1; fi
+	@install -T -C $(BIN) $(SYSTEM_BIN)
+
+.PHONY: install-default-hooks
+install-default-hooks:
+	@if ! [ "$(shell id -u)" = 0 ]; then echo "this command must be run using sudo";  exit 1; fi
+	@install -T -C hooks/ggh-gitleaks.sh /usr/local/bin/ggh-gitleaks
+	@install -T -C hooks/ggh-conventional-commit.sh /usr/local/bin/ggh-conventional-commit
+	@install -T -C hooks/ggh-signed-off.sh /usr/local/bin/ggh-signed-off
+
+configure: $(BIN)
+	@echo "creating directory $(USER_HOOKS_PATH) and symbolic links"
+	@mkdir -p $(USER_HOOKS_PATH)
+	@GGH_HOOK_OVERRIDE=ggh $(BIN) --print-hooks | while read -r hook; do ln -s $(SYSTEM_BIN) $(USER_HOOKS_PATH)/$$hook; done
+	@echo "setting 'core.hooksPath' for global git config to $(USER_HOOKS_PATH)"
+	@git config set --global core.hooksPath $(USER_HOOKS_PATH)
+	@echo "please run 'sudo make install' to complete installation"
 
