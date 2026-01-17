@@ -19,7 +19,9 @@
    MANDIR=%{man})))
 
 (build
- (run %{make} all PREFIX=%{prefix}))
+ (progn
+  (run mkdir -p _build/src)
+  (run %{make} all PREFIX=%{prefix})))
 
 (depends ocaml)
 
