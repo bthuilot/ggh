@@ -1,4 +1,4 @@
-# global git hooks
+# _G_lobal _G_it _H_ooks
 
 A system-wide git hook configuration for easy, consitant, and personalized configuration.
 
@@ -7,7 +7,7 @@ A system-wide git hook configuration for easy, consitant, and personalized confi
 Global git hooks provides a way to run various git hooks across your whole system.
 While other tools like [pre-commit](https://pre-commit.com/) are designed with collaboration and config sharing in mind,
 ggh is not. Easily add personalized hooks to your development enviroment across all your
-git repositories.
+git repositories and aditionally provide projection against running untrusted git hooks.
 
 ### Sample hooks
 
@@ -21,26 +21,46 @@ The are installed along side `ggh` via `make install`
 
 ## Installation
 
-Currently installation is only supported by building the program and installing from a clone
+Currently installation is only supported by building the program and installing from a clone.
+You will require [Opam](https://opam.ocaml.org/) to build/compile yourself
 
 ```bash
 git clone https://github.com/bthuilot/ggh
 cd ggh/
-make install # will use sudo to install
-# will move binaries to /usr/local/bin and configure 'core.hooks' gitconfig value
+
+make configure # will build application and configure git config's `core.hooksPath`
+sudo make install # will move binaries to /usr/local/bin 
+
+# Optional #
+sudo make install-default-hooks # will install the "Sample hooks" listed above
+```
+
+## Homebrew install 
+
+If you have [homebrew](https://brew.sh) installed,
+you can install via:
+
+```bash
+brew tap bthuilot/tap
+
+brew install bthuilot/tap/ggh
 ```
 
 ## Configuration
 
 All configuration for ggh is done using the `.gitconfig` file
 and via the `git config` command. All options should be prefixed by `ggh.`
-section of your config. Below are the list of options
+section of your config. Below are the list of options.
 
-| Config key                                          | Description                                                            | Mutliple values? |
-|-----------------------------------------------------|------------------------------------------------------------------------|------------------|
-| `$HOOK_NAME` (e.g `pre-commit`, `commit-msg`, etc.) | The hooks to execute when the respective hook (`$HOOK_NAME`) is called | yes              |
-| `additionalHooksPath`                               | Additional hooks path to call when executed                            | yes              |
-| `logLevel`                                          | The log level for ggh                                                  | no               |
+| Config key                                          | Description                                                                                                                                                                                                | Mutliple values? |
+|-----------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| `$HOOK_NAME` (e.g `pre-commit`, `commit-msg`, etc.) | The hooks to execute when the respective hook (`$HOOK_NAME`) is called                                                                                                                                     | yes              |
+| `additionalHooksPath`                               | Additional hooks path to call when executed                                                                                                                                                                | yes              |
+| `logLevel`                                          | The log level for ggh                                                                                                                                                                                      | no               |
+| `trustMode`                                         | The trust mode for GGH to determine which local repository hooks to run.  either `all` (meaning run all hooks, ignore trust), `whitelist` (see `whitelistPath` below) or `blacklist` (blacklist path below | no               |
+| `whitelistedPath`                                   | If the trust mode is `whitelist`, GGH will only run repository hooks that are children of at least one path that is set.                                                                                   | yes              |
+| `blacklistedPath`                                   | If the trust mode is `blacklist`, GGH will run repository hooks unless the path is a child of one of the blacklisted paths.                                                                                | yes              |
+
 
 
 You can also manually edit the gitconfig manually
@@ -57,6 +77,17 @@ You can also manually edit the gitconfig manually
 	# additional hooks path to call
 	# on each hook
 	additionalHooksPath = /other/hooks/path/to/call
+	
+	## Trust ##
+	
+	# meaning only run repo hook
+	# if a child path of one of the
+	# whitelisted paths
+	
+	trustMode = whitelist
+	
+	whitelistedPath = /home/user/projects
+	whitelistedPath = /home/user/oss
 	
 	## Hooks ##
 	
