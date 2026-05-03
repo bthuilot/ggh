@@ -49,7 +49,7 @@ let exec_hooks (processes : string list) (hook_name : string)
   in
   iter_exec processes
 
-(** [get_repository_hooks] will find additional hooks that should be executed
+(** [get_additional_hooks] will find additional hooks that should be executed
     based on the user definied additional hook paths. See
     [Config.get_additional_hook_paths] *)
 let get_additional_hooks (hook_name : string) : string list =
@@ -57,43 +57,29 @@ let get_additional_hooks (hook_name : string) : string list =
   |> List.map (fun v -> Utils.trim_suffix "/" v ^ "/" ^ hook_name)
   |> List.filter Sys.file_exists
 
+let allow_hook_directory (hook_name : string) (dir : string) : bool =
+  let action = Config.policy_for_dir dir in
+  match action with
+  | Config.Allow -> true
+  | Config.Deny -> false
+  | Config.Confirm ->
+      Tty.confirm
+        ("execute " ^ hook_name ^ " hook for repository '" ^ dir ^ "'?")
+
 (** [get_repository_hooks] returns the current git directory's hook for the
     given hook name. i.e. .git/hooks/$NAME where $NAME is the hook name *)
 let get_repository_hooks (hook_name : string) : string list =
-  let dir = Git.get_dir () in
-  let hook_path = dir ^ "/hooks/" ^ hook_name in
-  Log.debug "checking for local hook %s" hook_path;
-  if Sys.file_exists hook_path then (
-    Log.info "found local hook for %s" hook_path;
-    [ hook_path ])
-  (* TODO(bryce):
+  let hook_path = Git.get_dir () ^ "/hooks/" ^ hook_name
+  and root = Git.get_root () in
+  if not (Sys.file_exists hook_path) then
+    let () = Log.debug "no local hook found for %s" hook_path in
+    []
+  else if not (allow_hook_directory hook_name root) then
+    let () = Log.warn "hook execution for '%s' denied" hook_path in
+    []
+  else [ hook_path ]
+(* TODO(bryce):
    additionally read ggh configs from local *)
-    else (
-    Log.debug "no local hook found for %s" hook_path;
-    [])
-
-(** [filter_untrusted_dirs] will filter a list of directories, removing any that
-    are not "trusted". See [Config.trust_mode] for more info *)
-let filter_untrusted_dirs (dirs : string list) : string list =
-  let trust_mode = Config.get_trust_mode () in
-  let is_trusted =
-    match trust_mode with
-    | Config.All -> fun _ -> true
-    | Config.Blacklist bl -> fun d -> List.exists (Utils.is_subpath d) bl |> not
-    | Config.Whitelist wl -> fun d -> List.exists (Utils.is_subpath d) wl
-  in
-  let filter d =
-    let trusted = is_trusted d in
-    let () =
-      if trusted then Log.info "allowing hook directory '%s'" d
-      else Log.warn "skipping untrusted hook directory '%s'" d
-    in
-    trusted
-  and () =
-    Log.info "filtering trusted directories in mode %s"
-      (Config.format_trust_mode trust_mode)
-  in
-  List.filter filter dirs
 
 (** [run] will run all hooks for the given hook name. It will get all the hooks
     configured for the git config value 'ggh.$HOOK_NAME' where '$HOOK_NAME' is
@@ -109,7 +95,7 @@ let run (hook_name : string) (args : string array) =
   and () = Log.info "retrieving additional hook paths"
   and additional_hook_paths = get_additional_hooks hook_name
   and () = Log.info "retrieving repo level hooks"
-  and repo_hooks = get_repository_hooks hook_name |> filter_untrusted_dirs in
+  and repo_hooks = get_repository_hooks hook_name in
   let all_hooks =
     List.flatten [ ggh_hooks; additional_hook_paths; repo_hooks ]
   in

@@ -10,9 +10,7 @@ let print_help () =
   print_endline "Usage: ggh pre-commit [COMMAND] [OPTIONS...]\n";
   print_endline "Commands:";
   print_endline "  install            runs pre-commit install";
-  print_endline "";
-  print_endline "Options:";
-  print_endline "  --help             Print this help message and exit."
+  print_endline "  help               Print this help message and exit"
 
 exception PreCommitError of string
 
@@ -29,6 +27,6 @@ let install () =
 let exec (args : string array) =
   let cmd = try Some (Array.get args 1) with Invalid_argument _ -> None in
   match cmd with
-  | None | Some "--help" -> print_help ()
+  | None | Some "help" -> print_help ()
   | Some "install" -> install ()
   | Some c -> raise (PreCommitError ("unknown pre-commit command" ^ c))

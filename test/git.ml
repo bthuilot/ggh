@@ -1,3 +1,11 @@
+(*
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
+ *
+ * You have permission to copy, modify, and redistribute under the
+ * terms of the GPL-3.0. For full license terms, see LICENSE file located
+ * in the root of the repository.
+ *)
+
 module Git = Ggh.Git
 
 (* let gitScopePP fmt scope = Format.fprintf fmt "%s" (Git.scope_to_string scope) *)
