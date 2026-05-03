@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located
@@ -31,20 +31,21 @@ let parse_command () =
     let cmd = Sys.argv.(1) and sub_args = Array.sub Sys.argv 1 (n_args - 1) in
     let exit_code =
       match cmd with
-      | "--help" ->
+      | "help" ->
           Info.help ();
           0
-      | "--version" ->
+      | "version" ->
           Info.version ();
           0
       | "pre-commit" ->
           Precommit.exec sub_args;
           0
-      | "--print-hooks" ->
+      | "print-hooks" ->
           Info.print_hooks ();
           0
       | _ ->
           Printf.printf "unknown argument '%s'\n" cmd;
+          Info.help ();
           1
     in
     exit exit_code
@@ -84,10 +85,11 @@ let exec_hook (hook_name : string) =
 
 (* Entrypoint *)
 let () =
+  Log.info "starting";
   Config.init ();
   let hook_name = parse_hook_name () in
   match hook_name with
-  (* In this case ggh was called as 'ggh', meaning we should parse the CLI args *)
-  | "ggh" -> parse_command ()
+  (* In this case ggh was called as 'ggh' or 'main.exe', meaning we should parse the CLI args *)
+  | "ggh" | "main.exe" -> parse_command ()
   (* The program was executed under a different name *)
   | _ -> exec_hook hook_name

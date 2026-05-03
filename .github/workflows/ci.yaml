@@ -22,17 +22,17 @@ permissions:
 
 jobs:
   ci:
-    name: lint
+    name: ci
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
         with:
-            persist-credentials: false
+          persist-credentials: false
 
       - name: set-up ocaml
-        uses: ocaml/setup-ocaml@dec6499fef64fc5d7ed43d43a87251b7b1c306f5 # v3
+        uses: ocaml/setup-ocaml@e32b06a3e831ff2fbc6f08cf35be2085e3918014 # ratchet:ocaml/setup-ocaml@v3.6.1
         with:
           ocaml-compiler: ${{ env.OCAML_COMPILER }}
 
@@ -41,5 +41,5 @@ jobs:
       - run: opam exec -- dune build
 
       - run: opam exec -- dune fmt
-        
+
       - run: opam exec -- dune runtest

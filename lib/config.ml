@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located
@@ -10,13 +10,26 @@ module Log = Dolog.Log
 
 exception ValidationError of string
 
-type trust_mode = Whitelist of string list | Blacklist of string list | All
+type policy_action = Confirm | Deny | Allow
+
+let parse_policy_action = function
+  | "confirm" -> Confirm
+  | "deny" -> Deny
+  | "allow" -> Allow
+  | _ -> raise (ValidationError "unkown policy")
+
+type hook_policies = {
+  default_action : policy_action;
+  confirm : string list;
+  deny : string list;
+  allow : string list;
+}
 
 type state = {
   mutable log_channel : out_channel;
   mutable log_level : Log.log_level;
   mutable additional_hooks : string list;
-  mutable trust : trust_mode;
+  mutable hook_policies : hook_policies;
 }
 (** [state] represents the configuration of the ggh program *)
 
@@ -27,7 +40,8 @@ let t =
     log_channel = stderr;
     log_level = Log.INFO;
     additional_hooks = [];
-    trust = All;
+    hook_policies =
+      { default_action = Confirm; confirm = []; deny = []; allow = [] };
   }
 
 (** [get_additional_hook_paths] returns a list of directories that user has
@@ -35,10 +49,6 @@ let t =
     thought of as additional 'core.hooksPath'. NOTE: [init] should be called
     before accessing *)
 let get_additional_hook_paths () : string list = t.additional_hooks
-
-(** [format_trust_mode] will format the current [trust_mode] into a string for
-    printing and/or logging. NOTE: [init] should be called before accessing *)
-let get_trust_mode () : trust_mode = t.trust
 
 (** [all_hooks] is the list of supported hooks for ggh *)
 let all_hooks =
@@ -105,53 +115,32 @@ let parse_log_channel () : out_channel =
     stderr)
   else create_log_channel ()
 
-(** [format_trust_mode mode] will format the current [trust_mode] into a string
-    for printing and/or logging. NOTE: [init] should be called before accessing
-*)
-let format_trust_mode (mode : trust_mode) =
-  let format_dirs =
-    List.fold_left
-      (fun acc dir -> (if acc == "" then "" else acc ^ ", ") ^ dir)
-      ""
-  in
-  match mode with
-  | Whitelist dirs -> "whitelist=[" ^ format_dirs dirs ^ "]"
-  | Blacklist dirs -> "blacklist=[" ^ format_dirs dirs ^ "]"
-  | All -> "all"
-
 (** [filter_relative_paths paths] will filter [paths], removing any path that is
     relative or implict (i.e. only absolute paths) *)
 let filter_realtive_paths (paths : string list) =
   List.filter
     (fun p ->
       if Filename.is_relative p || Filename.is_implicit p then (
-        Log.warn "ignoring realtive trust path %s" p;
+        Log.warn "ignoring realtive repository path '%s'" p;
         false)
       else true)
     paths
 
-let parse_trust_mode () : trust_mode =
-  let trust_mode =
-    try Git.get_config_values "trustMode" |> List.hd
-    with Failure _ | Git.ExecError _ -> "all"
-  and parse mode =
-    match String.lowercase_ascii mode with
-    | "whitelist" ->
-        Whitelist
-          (Git.get_config_values "whitelistedPath" |> filter_realtive_paths)
-    | "blacklist" ->
-        Blacklist
-          (Git.get_config_values "blacklistedPath" |> filter_realtive_paths)
-    | "all" -> All
-    | _ ->
-        Log.warn "unknown trust mode, defaulting to all";
-        All
-  in
-  try parse trust_mode
-  with Git.ExecError e ->
-    Log.warn "unable to parse trust mode '%s', defaulting to all: %s" trust_mode
-      e;
-    All
+(** [parse_hook_policies] will parse the [hook_policies] specified by the user
+    in their git config *)
+let parse_hook_policies () : hook_policies =
+  {
+    default_action =
+      (try
+         parse_policy_action
+           (Git.get_config_values "defaultPolicyAction" |> List.hd)
+       with Failure _ | Git.ExecError _ | ValidationError _ ->
+         Log.info "unable to parse default policy action, defaulting to confirm";
+         Confirm);
+    confirm = Git.get_config_values "confirm" |> filter_realtive_paths;
+    deny = Git.get_config_values "deny" |> filter_realtive_paths;
+    allow = Git.get_config_values "allow" |> filter_realtive_paths;
+  }
 
 (** [parse_hooks hook_name] returns the paths to the user defined binaries to
     execute for the git hook [hook_name]. *)
@@ -163,6 +152,27 @@ let parse_hooks (hook_name : string) : string list =
     Log.warn "unable to retrieve hooks for '%s': %s" hook_name e;
     []
 
+(** [policy_contains_dir] will return true if the list of directories for a
+    policy contains the given directory, meaning that policy should be applied
+    to the this directory *)
+let policy_contains_dir (policy : string list) (dir : string) : bool =
+  let dir_matches (pattern : string) : bool =
+    if String.ends_with ~suffix:"*" pattern then (
+      let prefix = String.sub pattern 0 (String.length pattern - 1) in
+      Log.info "comparing %s with %s" prefix dir;
+      String.starts_with ~prefix dir)
+    else (
+      Log.info "testing %s and %s" pattern dir;
+      String.equal pattern dir)
+  in
+  List.exists dir_matches policy
+
+let policy_for_dir (dir : string) : policy_action =
+  if policy_contains_dir t.hook_policies.deny dir then Deny
+  else if policy_contains_dir t.hook_policies.confirm dir then Confirm
+  else if policy_contains_dir t.hook_policies.allow dir then Allow
+  else t.hook_policies.default_action
+
 let parse_additional_hook_paths () : string list =
   try Git.get_config_values "additionalHooksPath"
   with Git.ExecError e ->
@@ -172,24 +182,16 @@ let parse_additional_hook_paths () : string list =
 (** [init_logger] will initialize the global logger to use the values specified
     in [t] *)
 let init_logger () =
-  begin
-    Log.set_log_level t.log_level;
-    Log.set_output t.log_channel
-  end
+  Log.set_log_level t.log_level;
+  Log.set_output t.log_channel
 
 (** [init] will initialize the configuration for the current process including
     the configuring the global logger and setting trust mode and additional
     hooks path. It should be called on application startup, before any other
     functions from [Config] are called *)
 let init () =
-  let log_level = parse_log_level ()
-  and log_channel = parse_log_channel ()
-  and additional_hook_paths = parse_additional_hook_paths ()
-  and trust = parse_trust_mode () in
-  begin
-    t.log_level <- log_level;
-    t.log_channel <- log_channel;
-    t.additional_hooks <- additional_hook_paths;
-    t.trust <- trust;
-    init_logger ()
-  end
+  t.log_level <- parse_log_level ();
+  t.log_channel <- parse_log_channel ();
+  init_logger ();
+  t.additional_hooks <- parse_additional_hook_paths ();
+  t.hook_policies <- parse_hook_policies ()

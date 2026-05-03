@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located
@@ -123,6 +123,7 @@ let set_config_value ?(valid_exit_codes : int list = [ 0 ])
 
 (** [get_dir] gets the current git repository directory (i.e. .git, or root when
     cloned using --mirror. *)
-let get_dir () : string =
-  let cmd = "git rev-parse --git-dir" in
-  exec_git_command cmd |> Filename.concat (Unix.getcwd ())
+let get_dir () : string = exec_git_command "git rev-parse --absolute-git-dir"
+
+(** [get_root] will return the top level directory for the git repoistory *)
+let get_root () : string = exec_git_command "git rev-parse --show-toplevel"

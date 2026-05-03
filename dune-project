@@ -1,16 +1,16 @@
 (lang dune 3.17)
 
 (name ggh)
-(version 0.2.2)
+(version 0.3.0)
 
 (generate_opam_files true)
 
 (source
  (github bthuilot/ggh))
 
-(authors "Bryce Thuilot <bryce@thuilot.io>")
+(authors "bryce thuilot <bryce@thuilot.io>")
 
-(maintainers "Bryce Thuilot <bryce@thuilot.io>")
+(maintainers "bryce thuilot <bryce@thuilot.io>")
 
 (license GPL-3.0-or-later)
 
@@ -24,9 +24,12 @@
   (ocaml (>= 5.1.0))
    dune
   (dolog (>= 4.0.0))
+  (odoc :with-doc)
+  (alcotest :with-test)
   (ocamlformat :with-test)
-  (utop :with-test)
-  (alcotest :with-test))
+  (ocaml-lsp-server :with-dev-setup)
+  (utop :with-dev-setup)
+  (merlin :with-dev-setup))
  (tags
   (git sdlc pre-commit supply-chain)))
 

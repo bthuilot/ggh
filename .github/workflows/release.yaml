@@ -1,4 +1,4 @@
-# Copyright (C) 2025 Bryce Thuilot <bryce@thuilot.io>
+# Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,24 +33,24 @@ jobs:
           - os: macos-latest
             name: darwin
             arch: arm64
-          # TODO(bryce): find a way to build
-          # darwin amd64 without paying money
-          # - os: macos-latest-large
-          #   name: darwin
-          #   arch: amd64
-          # TODO(bryce): build for windows
-          # - os: windows-latest
-          #   name: windows
+            # TODO(bryce): find a way to build
+            # darwin amd64 without paying money
+            # - os: macos-latest-large
+            #   name: darwin
+            #   arch: amd64
+            # TODO(bryce): build for windows
+            # - os: windows-latest
+            #   name: windows
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # ratchet:actions/checkout@v6.0.2
         with:
-            persist-credentials: false
+          persist-credentials: false
 
       - name: set-up ocaml
-        uses: ocaml/setup-ocaml@dec6499fef64fc5d7ed43d43a87251b7b1c306f5 # v3
+        uses: ocaml/setup-ocaml@e32b06a3e831ff2fbc6f08cf35be2085e3918014 # ratchet:ocaml/setup-ocaml@v3.6.1
         with:
           ocaml-compiler: ${{ env.OCAML_COMPILER }}
 
@@ -74,4 +74,3 @@ jobs:
           OS_NAME: ${{ matrix.name }}
           GH_TOKEN: ${{ github.token }}
           OS_ARCH: ${{ matrix.arch }}
-  

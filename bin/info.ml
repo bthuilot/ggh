@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located
@@ -13,12 +13,10 @@ let help () =
   print_endline "Usage: ggh [COMMAND] [OPTIONS...]\n";
   print_endline "Commands:";
   print_endline "  pre-commit         Pre-commit integrations";
-  print_endline "";
-  print_endline "Options:";
-  print_endline "  --version          Print version information and exit.";
-  print_endline "  --help             Print this help message and exit.";
+  print_endline "  version            Print version information and exit.";
+  print_endline "  help               Print this help message and exit.";
   print_endline
-    "  --print-hooks      Print a newline separated list of all supported git \
+    "  print-hooks        Print a newline separated list of all supported git \
      hooks and exit.";
   print_endline "";
   print_endline "Environment variable options:";

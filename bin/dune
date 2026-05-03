@@ -3,7 +3,7 @@
  (action
   (write-file
    metadata.ml
-   "let version = \"%{version:ggh}\"let commit = \"%{env:GGH_COMMIT_SHA=unknown}\"")))
+   "let version = \"v%{version:ggh}\"let commit = \"%{env:GGHCOMMITSHA=unknown}\"")))
 
 (executable
  (public_name ggh)

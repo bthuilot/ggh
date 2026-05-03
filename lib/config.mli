@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located
@@ -11,7 +11,13 @@ exception ValidationError of string
     or malformed values from the user. The error will contain a message
     describing the issue *)
 
-type trust_mode = Whitelist of string list | Blacklist of string list | All
+type policy_action =
+  | Confirm
+  | Deny
+  | Allow
+      (** [policy] represnets the policy for a local git hook execution. It can
+          either be [Confirm] meaning prompt the user for confirmation before
+          executing, [Deny] meaning do not execute or [Allow] meaning execute **)
 
 val init : unit -> unit
 (** [init] will initialize the configuration for the current process including
@@ -22,12 +28,10 @@ val init : unit -> unit
 val all_hooks : string list
 (** [all_hooks] is a list of all supported git hooks *)
 
-val get_trust_mode : unit -> trust_mode
-(** [get_trust_mode] returns the [trust_mode] for the currrent program *)
-
-val format_trust_mode : trust_mode -> string
-(** [format_trust_mode] will format the current [trust_mode] into a string for
-    printing and/or logging. NOTE: [init] should be called before accessing *)
+val policy_for_dir : string -> policy_action
+(** [policy_for_dir] will return the [policy_action] that should be used when
+    executing the local git hooks for a repository with the root at the given
+    directory *)
 
 val get_additional_hook_paths : unit -> string list
 (** [get_additional_hook_paths] returns a list of directories that user has
