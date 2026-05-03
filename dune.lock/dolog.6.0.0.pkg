@@ -1,9 +1,11 @@
 (version 6.0.0)
 
 (build
- (run dune build -p %{pkg-self:name} -j %{jobs}))
+ (all_platforms ((action (run dune build -p %{pkg-self:name} -j %{jobs})))))
 
-(depends ocaml dune base-unix)
+(depends
+ (all_platforms
+  (ocaml dune base-unix)))
 
 (source
  (fetch

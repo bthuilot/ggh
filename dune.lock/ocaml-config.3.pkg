@@ -1,9 +1,11 @@
 (version 3)
 
 (build
- (substitute gen_ocaml_config.ml.in gen_ocaml_config.ml))
+ (all_platforms
+  ((action (substitute gen_ocaml_config.ml.in gen_ocaml_config.ml)))))
 
-(depends ocaml-base-compiler)
+(depends
+ (all_platforms (ocaml-base-compiler)))
 
 (extra_sources
  (gen_ocaml_config.ml.in

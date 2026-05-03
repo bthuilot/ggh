@@ -1,13 +1,15 @@
 (version 1.0.0)
 
 (build
- (progn
-  (when
-   %{pkg-self:dev}
-   (run dune subst))
-  (run dune build -p %{pkg-self:name} -j %{jobs} @install)))
+ (all_platforms
+  ((action
+    (progn
+     (when %{pkg-self:dev} (run dune subst))
+     (run dune build -p %{pkg-self:name} -j %{jobs} @install))))))
 
-(depends dune ocaml)
+(depends
+ (all_platforms
+  (dune ocaml)))
 
 (source
  (fetch

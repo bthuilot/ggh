@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   ci:
-    name: lint
+    name: ci
     runs-on: ubuntu-latest
 
     steps:

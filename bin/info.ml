@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2025 bryce thuilot <bryce@thuilot.io>
+ * Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
  *
  * You have permission to copy, modify, and redistribute under the
  * terms of the GPL-3.0. For full license terms, see LICENSE file located

@@ -8,9 +8,9 @@
 (source
  (github bthuilot/ggh))
 
-(authors "Bryce Thuilot <bryce@thuilot.io>")
+(authors "bryce thuilot <bryce@thuilot.io>")
 
-(maintainers "Bryce Thuilot <bryce@thuilot.io>")
+(maintainers "bryce thuilot <bryce@thuilot.io>")
 
 (license GPL-3.0-or-later)
 
@@ -26,8 +26,8 @@
   (dolog (>= 4.0.0))
   (odoc :with-doc)
   (alcotest :with-test)
+  (ocamlformat :with-test)
   (ocaml-lsp-server :with-dev-setup)
-  (ocamlformat :with-dev-setup)
   (utop :with-dev-setup)
   (merlin :with-dev-setup))
  (tags

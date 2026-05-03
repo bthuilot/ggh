@@ -18,8 +18,8 @@ depends: [
   "dolog" {>= "4.0.0"}
   "odoc" {with-doc}
   "alcotest" {with-test}
+  "ocamlformat" {with-test}
   "ocaml-lsp-server" {with-dev-setup}
-  "ocamlformat" {with-dev-setup}
   "utop" {with-dev-setup}
   "merlin" {with-dev-setup}
 ]
