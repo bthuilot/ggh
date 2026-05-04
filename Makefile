@@ -28,7 +28,8 @@ DUNESOURCES := ./dune-project $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -o
 OPAMSOURCES := $(OPAMFILE)
 OPAMARGS ?= --with-test --with-doc --with-dev-setup 
 
-SYSTEMBIN := /usr/local/bin/ggh
+SYSTEMPREFIX=/usr/local
+SYSTEMBIN := $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh
 
 $(OPAMDIR)/.opam-switch/switch-config:
 	$(OPAM) switch create $(OPAMSWITCH) $(OCAML_VERSION) --no-install
@@ -89,7 +90,7 @@ $(HOOKSDIR):
 .PHONY: install
 install: $(HOOKSDIR)
 	@echo "installing GGH, you may be prompted for your password"
-	@install -m 755 -T -C $(BIN) $(SYSTEMBIN)
+	@install -Dm 755 -T $(BIN) $(SYSTEMBIN)
 	@$(BIN) print-hooks | while read -r hook; do \
 		sudo -u $(INSTALL_USER) ln -sf $(SYSTEMBIN) $(HOOKSDIR)/$$hook; done
 	@sudo -u $(INSTALL_USER) git config set --global core.hooksPath $(HOOKSDIR)
@@ -97,7 +98,7 @@ install: $(HOOKSDIR)
 
 .PHONY: install-default-hooks
 install-default-hooks:
-	@install -T -C hooks/ggh-gitleaks.sh /usr/local/bin/ggh-gitleaks
-	@install -T -C hooks/ggh-conventional-commit.sh /usr/local/bin/ggh-conventional-commit
-	@install -T -C hooks/ggh-signed-off.sh /usr/local/bin/ggh-signed-off
+	@install -Dm755 -T hooks/ggh-gitleaks.sh $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-gitleaks
+	@install -Dm755 -T hooks/ggh-conventional-commit.sh  $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-conventional-commit
+	@install -Dm755 -T hooks/ggh-signed-off.sh  $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-signed-off
 
