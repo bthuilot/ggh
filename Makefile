@@ -15,8 +15,8 @@ DUNELOCKSOURCEDIR := ./dune.lock
 # OPAM configuration
 OPAM := opam
 OPAMSWITCH ?= $(CURDIR)
-OPAMDIR := $(OPAMSWITCH)/_opam
 OCAML_VERSION ?= 5.1.0
+OPAMDIR := $(OPAMSWITCH)/_opam
 OPAMFILE := ggh.opam
 OPAMEXEC := $(OPAM) exec --switch $(OPAMSWITCH) --
 
@@ -28,8 +28,9 @@ DUNESOURCES := ./dune-project $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -o
 OPAMSOURCES := $(OPAMFILE)
 OPAMARGS ?= --with-test --with-doc --with-dev-setup 
 
-SYSTEMPREFIX=/usr/local
-SYSTEMBIN := $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh
+DESTDIR ?=
+SYSTEMPREFIX ?= $(DESTDIR)/usr/local
+SYSTEMBIN ?= $(SYSTEMPREFIX)/bin/ggh
 
 $(OPAMDIR)/.opam-switch/switch-config:
 	$(OPAM) switch create $(OPAMSWITCH) $(OCAML_VERSION) --no-install
@@ -42,7 +43,7 @@ install-deps: switch
 .PHONY: switch
 switch: $(OPAMDIR)/.opam-switch/switch-config
 
-GGHCOMMITSHA := $(shell git describe --no-match --always --abbrev=10 --dirty)
+GGHCOMMITSHA ?= $(shell git describe --no-match --always --abbrev=10 --dirty)
 BUILDARGS ?= 
 export GGHCOMMITSHA
 $(BIN): switch $(LIBSOURCES) $(BINSOURCES) $(DUNESOURCES) $(OPAMSOURCES)
@@ -79,26 +80,24 @@ clean: switch
 cleanup-switch:
 	@$(OPAM) switch remove $(OPAMSWITCH) --yes 2>/dev/null || true
 
-INSTALL_USER := $(or $(SUDO_USER), $(USER))
-INSTALL_HOME := $(shell getent passwd $(INSTALL_USER) | cut -d: -f6)
-XDG_DATA_HOME ?= ${INSTALL_HOME}/.local/share
-HOOKSDIR := ${XDG_DATA_HOME}/ggh
+HOOKSPREFIX ?= /usr/share
+HOOKSDIR ?= $(DESTDIR)$(HOOKSPREFIX)/ggh/hooks
 
 $(HOOKSDIR):
-	sudo -u $(INSTALL_USER) mkdir -p $(HOOKSDIR)
+	mkdir -p $(HOOKSDIR)
 
 .PHONY: install
 install: $(HOOKSDIR)
-	@echo "installing GGH, you may be prompted for your password"
 	@install -Dm 755 -T $(BIN) $(SYSTEMBIN)
 	@$(BIN) print-hooks | while read -r hook; do \
-		sudo -u $(INSTALL_USER) ln -sf $(SYSTEMBIN) $(HOOKSDIR)/$$hook; done
-	@sudo -u $(INSTALL_USER) git config set --global core.hooksPath $(HOOKSDIR)
+		ln -sf $(SYSTEMBIN) $(HOOKSDIR)/$$hook; done
+	@echo "GGH installed, to use please your hooks path to the following: "
+	@echo '$$ git config set --global core.hooksPath $(HOOKSDIR)'
 
 
 .PHONY: install-default-hooks
 install-default-hooks:
-	@install -Dm755 -T hooks/ggh-gitleaks.sh $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-gitleaks
-	@install -Dm755 -T hooks/ggh-conventional-commit.sh  $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-conventional-commit
-	@install -Dm755 -T hooks/ggh-signed-off.sh  $(DESTDIR)$(SYSTEMPREFIX)/bin/ggh-signed-off
+	@install -Dm755 -T hooks/ggh-gitleaks.sh $(SYSTEMPREFIX)/bin/ggh-gitleaks
+	@install -Dm755 -T hooks/ggh-conventional-commit.sh $(SYSTEMPREFIX)/bin/ggh-conventional-commit
+	@install -Dm755 -T hooks/ggh-signed-off.sh $(SYSTEMPREFIX)/bin/ggh-signed-off
 
