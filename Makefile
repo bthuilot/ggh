@@ -14,9 +14,9 @@ DUNELOCKSOURCEDIR := ./dune.lock
 
 # OPAM configuration
 OPAM := opam
-OPAMSWITCH := $(CURDIR)
+OPAMSWITCH ?= $(CURDIR)
 OPAMDIR := $(OPAMSWITCH)/_opam
-OCAML_VERSION := 5.1.0
+OCAML_VERSION ?= 5.1.0
 OPAMFILE := ggh.opam
 OPAMEXEC := $(OPAM) exec --switch $(OPAMSWITCH) --
 
@@ -26,12 +26,12 @@ LIBSOURCES := $(shell find $(LIBSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -n
 BINSOURCES := $(shell find $(BINSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -name "dune")
 DUNESOURCES := ./dune-project $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -or -name "*.dune")
 OPAMSOURCES := $(OPAMFILE)
-OPAMARGS := --with-test --with-doc --with-dev-setup 
+OPAMARGS ?= --with-test --with-doc --with-dev-setup 
 
 SYSTEMBIN := /usr/local/bin/ggh
 
 $(OPAMDIR)/.opam-switch/switch-config:
-	$(OPAM) switch create $(OPAMSWITCH) $(OCAML_VER) --no-install
+	$(OPAM) switch create $(OPAMSWITCH) $(OCAML_VERSION) --no-install
 	$(MAKE) install-deps
 
 .PHONY: install-deps
@@ -42,9 +42,10 @@ install-deps: switch
 switch: $(OPAMDIR)/.opam-switch/switch-config
 
 GGHCOMMITSHA := $(shell git describe --no-match --always --abbrev=10 --dirty)
+BUILDARGS ?= 
 export GGHCOMMITSHA
 $(BIN): switch $(LIBSOURCES) $(BINSOURCES) $(DUNESOURCES) $(OPAMSOURCES)
-	@$(OPAMEXEC) dune build
+	@$(OPAMEXEC) dune build $(BUILDARGS)
 
 .PHONY: build
 build: $(BIN)
