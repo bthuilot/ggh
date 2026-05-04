@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (C) 2025 Bryce Thuilot <bryce@thuilot.io>
+# Copyright (C) 2025-2026 bryce thuilot <bryce@thuilot.io>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
