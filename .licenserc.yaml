@@ -10,6 +10,7 @@ header:
   license:
     spdx-id: GPL-3.0-or-later
     copyright-owner: bryce thuilot <bryce@thuilot.io>
+    copyright-year: '2025-2026'
     content: |
       Copyright (C) [year] [owner]
 
@@ -23,10 +24,15 @@ header:
     - '**/*.yaml'
     - 'Makefile'
     - '**/*.sh'
-    # OCaml commenting is currently broken for
-    # skywalking-eyes
-    # - '**/*.ml'
-    # - '**/*.mli'
+    - '**/*.ml'
+    - '**/*.mli'
+    - '**/dune'
 
+  language:
+    Dune:
+      filenames:
+        - "dune"
+        - "dune-project"
+      comment_style_id: Semicolon
 
   comment: on-failure

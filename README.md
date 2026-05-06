@@ -21,8 +21,24 @@ These programs are optional and can be installed along side `ggh` via `make inst
 
 ## Installation
 
-Currently installation is only supported by building the program and installing from a clone.
-You will require [Opam](https://opam.ocaml.org/) to build/compile yourself
+
+### via Homebrew
+
+If you have [Homebrew](https://brew.sh) installed,
+you can install via:
+
+```bash
+brew tap bthuilot/tap
+
+brew install bthuilot/tap/ggh
+```
+
+
+### via Archlinux User Repositories
+
+### Manual
+
+You will require [Opam](https://opam.ocaml.org/) to build/compile yourself.
 
 ```bash
 git clone https://github.com/bthuilot/ggh
@@ -44,16 +60,9 @@ sudo make install
 sudo make install-default-hooks 
 ```
 
-## Homebrew install 
+*NOTE*: Additionally, [Go](https://go.dev) is used to install development tools and
+is required when contributing.
 
-If you have [homebrew](https://brew.sh) installed,
-you can install via:
-
-```bash
-brew tap bthuilot/tap
-
-brew install bthuilot/tap/ggh
-```
 
 ## Configuration
 
