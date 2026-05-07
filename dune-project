@@ -8,7 +8,7 @@
 ; visit: <https://www.gnu.org/licenses/gpl-3.0.html>.
 
 (name ggh)
-(version 0.3.0)
+(version 0.3.0-beta.1)
 
 (generate_opam_files true)
 
