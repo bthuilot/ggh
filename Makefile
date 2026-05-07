@@ -9,6 +9,7 @@
 LIBSOURCEDIR := $(shell pwd)/lib
 BINSOURCEDIR := $(shell pwd)/bin
 BUILDDIR := $(shell pwd)/_build
+DUNEPROJECT := $(shell pwd)/dune-project
 DUNELOCKSOURCEDIR := $(shell pwd)/dune.lock
 
 # OPAM configuration
@@ -21,10 +22,9 @@ OPAMEXEC := $(OPAM) exec --switch $(OPAMSWITCH) --
 
 LIBSOURCES := $(shell find $(LIBSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -name "dune")
 BINSOURCES := $(shell find $(BINSOURCEDIR) -name "*.ml" -or -name "*.mli" -or -name "dune")
-DUNESOURCES := $(shell pwd)/dune-project $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -or -name "*.dune")
+DUNESOURCES := $(DUNEPROJECT) $(shell find $(DUNELOCKSOURCEDIR) -name "*.pkg" -or -name "*.dune")
 OPAMSOURCES := $(OPAMFILE)
 OPAMARGS ?= --with-test --with-doc --with-dev-setup 
-
 
 DESTDIR ?=
 SYSTEMPREFIX ?= $(DESTDIR)/usr/local
@@ -35,11 +35,25 @@ BUILDARGS ?=
 GGHCOMMITSHA ?= $(shell git describe --no-match --always --abbrev=10 --dirty)
 export GGHCOMMITSHA
 
+DUNE_VERSION_LINE := ^\(version
+GGH_VERSION ?= v$(shell grep -E '$(DUNE_VERSION_LINE)' dune-project | cut -c 10- | sed 's/.$$//' )
+IMG ?= ghcr.io/bthuilot/ggh:$(GGH_VERSION)
+
 $(BIN): switch $(LIBSOURCES) $(BINSOURCES) $(DUNESOURCES) $(OPAMSOURCES)
 	@$(OPAMEXEC) dune build $(BUILDARGS)
 
 .PHONY: build
 build: $(BIN)
+
+DOCKER_ARGS ?=
+.PHONY: docker-build
+docker-build:
+	@echo "building docker image with tag '$(IMG)'"
+	@docker build \
+		--build-arg GGHCOMMITSHA=$(GGHCOMMITSHA) \
+		--tag $(IMG) \
+		$(DOCKER_ARGS) \
+		-f Dockerfile .
 
 
 $(OPAMDIR)/.opam-switch/switch-config:
