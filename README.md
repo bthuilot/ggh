@@ -21,7 +21,6 @@ These programs are optional and can be installed along side `ggh` via `make inst
 
 ## Installation
 
-
 ### via Homebrew
 
 If you have [Homebrew](https://brew.sh) installed,
@@ -33,8 +32,8 @@ brew tap bthuilot/tap
 brew install bthuilot/tap/ggh
 ```
 
-
-### via Archlinux User Repositories
+<!-- ### via Archlinux User Repositories -->
+<!-- // TODO -->
 
 ### Manual
 
@@ -48,11 +47,12 @@ make
 
 # 'make install' will install the binary
 # to /usr/local/bin/ggh and system-link
-# the binary to $HOME/.local/share/ggh/${HOOK_NAME}
+# the binary to /usr/share/ggh/${HOOK_NAME}
 # for each git hook ggh supports.
-# It will then configure GGH for all git hooks
-# by editing the user's global git config
 sudo make install
+
+# set GGH as your hooks path
+git config set --global core.hooksPath /usr/share/ggh/
 
 ## OPTIONAL ##
 # Install the "Sample hooks" listed above
